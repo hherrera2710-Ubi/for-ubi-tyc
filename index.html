@@ -31,10 +31,10 @@
   .brand-lockup{display:flex; align-items:center; gap:10px;}
   .brand-lockup svg{display:block;}
   .brand-text{display:flex; flex-direction:column; gap:2px;}
-  .brand-word{font-weight:800; letter-spacing:.06em; font-size:19px; color:var(--gris);}
+  .brand-word{font-weight:800; letter-spacing:.06em; font-size:19px; color:#000000;}
   .brand-word b{color:var(--accent);}
   .brand-slogan{font-size:9px; letter-spacing:.16em; color:var(--gris); text-transform:uppercase;}
-  .stepper{font-family:var(--mono); font-size:11px; color:var(--gris);}
+  .stepper{font-family:var(--mono); font-size:11px; color:#000000;}
   select.formato{
     width:100%; padding:12px 14px; font-size:15px; border:1.5px solid var(--ink);
     background:#fff; margin-bottom:20px; border-radius:2px;
@@ -237,9 +237,6 @@
           <button type="button" data-clear="firma-reviso">Borrar</button>
           <input type="text" id="nombre-reviso" placeholder="Nombre del jefe inmediato" style="margin-top:8px;">
         </div>
-      </div>
-      <div class="note">
-        Prototipo local: genera el PDF y lo descarga en la tableta. Para el flujo final, este mismo botón sube el PDF a SharePoint vía Microsoft Graph (mismo patrón de autenticación de U-Access), en vez de descargarlo.
       </div>
     </div>
 
