@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ubictum · Digitalización de Incidencias</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#000000;
+    --gris:#636469;
+    --paper:#faf9f6;
+    --line:#d9dadb;
+    --accent:#54a4b3;
+    --accent-soft:#e5f1f3;
+    --danger:#8a2b1f;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+  .topbar{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:24px;
+  }
+  .brand-lockup{display:flex; align-items:center; gap:10px;}
+  .brand-lockup svg{display:block;}
+  .brand-text{display:flex; flex-direction:column; gap:2px;}
+  .brand-word{font-weight:800; letter-spacing:.06em; font-size:19px; color:var(--gris);}
+  .brand-word b{color:var(--accent);}
+  .brand-slogan{font-size:9px; letter-spacing:.16em; color:var(--gris); text-transform:uppercase;}
+  .stepper{font-family:var(--mono); font-size:11px; color:var(--gris);}
+  select.formato{
+    width:100%; padding:12px 14px; font-size:15px; border:1.5px solid var(--ink);
+    background:#fff; margin-bottom:20px; border-radius:2px;
+  }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:3px;
+    padding:22px 20px; margin-bottom:16px;
+  }
+  .card h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+    color:var(--accent); margin:0 0 16px; border-bottom:1px solid var(--accent-soft); padding-bottom:8px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .grid.g3{grid-template-columns:1fr 1fr 1fr;}
+  label{display:block; font-size:11px; color:var(--gris); margin-bottom:4px;}
+  .motivo-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .motivo-tab{
+    flex:1; min-width:150px; padding:11px 12px; text-align:center; font-size:12px;
+    font-weight:700; letter-spacing:.03em; border:1.5px solid var(--line); border-radius:2px;
+    background:#fdfdfc; color:var(--gris); cursor:pointer;
+  }
+  .motivo-tab.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .motivo-panel{display:none;}
+  .motivo-panel.active{display:block;}
+  .subtitulo{font-size:11px;font-weight:700;color:var(--ink);margin-bottom:8px;display:block;}
+  input[type=text], input[type=date], input[type=number], textarea{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px;
+    font-size:14px; font-family:inherit; background:#fdfdfc;
+  }
+  textarea{resize:vertical; min-height:50px;}
+  .field{margin-bottom:0;}
+  .opciones{display:flex; flex-wrap:wrap; gap:10px 22px;}
+  .opt{
+    display:flex; align-items:center; gap:8px; font-size:14px;
+    border:1px solid var(--line); padding:9px 12px; border-radius:2px; cursor:pointer;
+    background:#fdfdfc;
+  }
+  .opt input{width:16px; height:16px;}
+  .opt.checked{background:var(--accent-soft); border-color:var(--accent);}
+  .motivo-block{border:1px dashed var(--line); padding:12px; border-radius:2px; margin-bottom:10px;}
+  .motivo-block .opciones{margin-bottom:8px;}
+  .firmas{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .firma-box{text-align:center;}
+  .firma-box canvas{
+    width:100%; height:110px; border:1px solid var(--ink); border-radius:2px;
+    background:#fff; touch-action:none;
+  }
+  .firma-box p{font-size:11px; margin:6px 0 4px; color:#71706b;}
+  .firma-box button{
+    font-size:10px; background:none; border:none; color:var(--danger);
+    text-decoration:underline; cursor:pointer; padding:0;
+  }
+  .actions{
+    position:sticky; bottom:0; background:var(--paper); padding:16px 0 0;
+    display:flex; gap:12px; margin-top:8px;
+  }
+  .btn{
+    flex:1; padding:14px; font-size:14px; font-weight:700; border-radius:2px;
+    border:none; cursor:pointer;
+  }
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:disabled{background:#a9b8ae; cursor:not-allowed;}
+  .btn-secondary{background:#fff; border:1.5px solid var(--ink); color:var(--ink);}
+  .note{
+    font-size:11px; color:#71706b; background:var(--accent-soft); border-radius:2px;
+    padding:10px 12px; margin-top:12px; line-height:1.5;
+  }
+  .status{font-size:12px; margin-top:10px; min-height:16px;}
+  .status.ok{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand-lockup">
+      <div class="brand-text">
+        <div class="brand-word">UBICTUM</div>
+        <div class="brand-slogan">La puerta de entrada al mercado</div>
+      </div>
+    </div>
+    <div class="stepper" id="fecha-actual"></div>
+  </div>
+
+  <select class="formato" id="formato-select">
+    <option value="ausencia">Reporte de Ausencia (FO-UB-181)</option>
+    <option disabled>— más formatos se agregan aquí —</option>
+  </select>
+
+  <form id="form-ausencia">
+
+    <div class="card">
+      <h2>Datos del empleado</h2>
+      <div class="grid">
+        <div class="field">
+          <label>No. de empleado</label>
+          <input type="text" id="num-empleado" required>
+        </div>
+        <div class="field">
+          <label>Nombre del empleado</label>
+          <input type="text" id="empleado" required>
+        </div>
+        <div class="field">
+          <label>Área</label>
+          <input type="text" id="area" required>
+        </div>
+        <div class="field">
+          <label>Departamento</label>
+          <input type="text" id="departamento" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tipo de ausencia</h2>
+      <div class="opciones" id="tipo-ausencia">
+        <label class="opt"><input type="radio" name="tipo" value="Permiso con goce de sueldo"> Permiso con goce de sueldo</label>
+        <label class="opt"><input type="radio" name="tipo" value="Permiso sin goce de sueldo"> Permiso sin goce de sueldo</label>
+        <label class="opt"><input type="radio" name="tipo" value="Falta injustificada"> Falta injustificada</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Motivo de la ausencia</h2>
+
+      <div class="motivo-tabs" id="motivo-tabs">
+        <div class="motivo-tab active" data-panel="panel-permisos">Permisos otorgados por</div>
+        <div class="motivo-tab" data-panel="panel-incapacidades">Incapacidades por</div>
+        <div class="motivo-tab" data-panel="panel-otros">Otros por</div>
+      </div>
+
+      <!-- PERMISOS -->
+      <div class="motivo-panel active" id="panel-permisos" data-motivo="permisos">
+        <div class="opciones" id="permisos-por">
+          <label class="opt"><input type="radio" name="permiso" value="Defunción familiar"> Defunción familiar</label>
+          <label class="opt"><input type="radio" name="permiso" value="Alumbramiento esposa"> Alumbramiento esposa</label>
+          <label class="opt"><input type="radio" name="permiso" value="Vacaciones"> Vacaciones</label>
+          <label class="opt"><input type="radio" name="permiso" value="Otro"> Otro (especificar)</label>
+        </div>
+        <input type="text" id="permiso-otro-detalle" placeholder="Especificar motivo si es 'Otro'" style="margin:10px 0;">
+        <div class="grid g3">
+          <div class="field"><label>Del</label><input type="date" id="permiso-del"></div>
+          <div class="field"><label>Al</label><input type="date" id="permiso-al"></div>
+          <div class="field"><label>No. de días otorgados</label><input type="number" id="dias-otorgados" min="0"></div>
+        </div>
+        <div class="grid" style="margin-top:14px;">
+          <div class="field"><label>No. de días restantes</label><input type="number" id="dias-restantes" min="0"></div>
+          <div class="field"><label>Antigüedad / Periodo</label><input type="text" id="antiguedad-periodo"></div>
+        </div>
+      </div>
+
+      <!-- INCAPACIDADES -->
+      <div class="motivo-panel" id="panel-incapacidades" data-motivo="incapacidades">
+        <div class="opciones" id="incapacidades-por">
+          <label class="opt"><input type="radio" name="incapacidad" value="Enfermedad profesional"> Enfermedad profesional</label>
+          <label class="opt"><input type="radio" name="incapacidad" value="Enfermedad general"> Enfermedad general</label>
+          <label class="opt"><input type="radio" name="incapacidad" value="Accidente de trabajo"> Accidente de trabajo</label>
+          <label class="opt"><input type="radio" name="incapacidad" value="Maternidad"> Maternidad</label>
+        </div>
+        <div class="grid g3" style="margin-top:12px;">
+          <div class="field"><label>Del</label><input type="date" id="incapacidad-del"></div>
+          <div class="field"><label>Al</label><input type="date" id="incapacidad-al"></div>
+          <div class="field"><label>No. de incapacidad</label><input type="text" id="incapacidad-numero"></div>
+        </div>
+        <div class="grid" style="margin-top:14px;">
+          <div class="field"><label>No. de días de incapacidad</label><input type="number" id="incapacidad-dias" min="0"></div>
+        </div>
+      </div>
+
+      <!-- OTROS -->
+      <div class="motivo-panel" id="panel-otros" data-motivo="otros">
+        <label class="subtitulo">Especificar motivo</label>
+        <input type="text" id="otros-detalle" placeholder="Descripción del motivo" style="margin-bottom:12px;">
+        <div class="grid g3">
+          <div class="field"><label>Del</label><input type="date" id="otros-del"></div>
+          <div class="field"><label>Al</label><input type="date" id="otros-al"></div>
+          <div class="field"><label>No. de días</label><input type="number" id="otros-dias" min="0"></div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:16px;">
+        <label>Observaciones</label>
+        <textarea id="observaciones"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Firmas</h2>
+      <div class="firmas">
+        <div class="firma-box">
+          <canvas id="firma-solicito"></canvas>
+          <p>Solicitó (Empleado)</p>
+          <button type="button" data-clear="firma-solicito">Borrar</button>
+          <input type="text" id="nombre-solicito" placeholder="Nombre del empleado" style="margin-top:8px;">
+        </div>
+        <div class="firma-box">
+          <canvas id="firma-reviso"></canvas>
+          <p>Revisó (Jefe inmediato)</p>
+          <button type="button" data-clear="firma-reviso">Borrar</button>
+          <input type="text" id="nombre-reviso" placeholder="Nombre del jefe inmediato" style="margin-top:8px;">
+        </div>
+      </div>
+      <div class="note">
+        Prototipo local: genera el PDF y lo descarga en la tableta. Para el flujo final, este mismo botón sube el PDF a SharePoint vía Microsoft Graph (mismo patrón de autenticación de U-Access), en vez de descargarlo.
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" id="btn-limpiar">Limpiar formulario</button>
+      <button type="submit" class="btn btn-primary" id="btn-generar">Generar PDF</button>
+    </div>
+    <div class="status" id="status"></div>
+  </form>
+</div>
+
+<script>
+document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+// Tabs de motivo: Permisos / Incapacidades / Otros (mutuamente excluyentes)
+document.querySelectorAll('.motivo-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.motivo-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.motivo-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.panel).classList.add('active');
+  });
+});
+
+// Radio "checked" visual state
+document.querySelectorAll('.opt input[type=radio]').forEach(inp=>{
+  inp.addEventListener('change', ()=>{
+    document.querySelectorAll(`input[name="${inp.name}"]`).forEach(i=>{
+      i.closest('.opt').classList.toggle('checked', i.checked);
+    });
+  });
+});
+
+// Signature pads
+function initPad(canvasId){
+  const canvas = document.getElementById(canvasId);
+  function resize(){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext('2d').scale(ratio, ratio);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  return new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)', penColor:'#161514' });
+}
+const pads = {
+  'firma-solicito': initPad('firma-solicito'),
+  'firma-reviso': initPad('firma-reviso'),
+};
+document.querySelectorAll('[data-clear]').forEach(btn=>{
+  btn.addEventListener('click', ()=> pads[btn.dataset.clear].clear());
+});
+
+document.getElementById('btn-limpiar').addEventListener('click', ()=>{
+  document.getElementById('form-ausencia').reset();
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('checked'));
+  document.querySelectorAll('.motivo-tab').forEach((t,i)=>t.classList.toggle('active', i===0));
+  document.querySelectorAll('.motivo-panel').forEach((p,i)=>p.classList.toggle('active', i===0));
+  Object.values(pads).forEach(p=>p.clear());
+  document.getElementById('status').textContent='';
+});
+
+document.getElementById('form-ausencia').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const status = document.getElementById('status');
+
+  if (pads['firma-solicito'].isEmpty()) {
+    status.textContent = 'Falta la firma de "Solicitó".';
+    status.className = 'status';
+    return;
+  }
+
+  status.textContent = 'Generando PDF…';
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'letter' });
+  const PAGE_W = doc.internal.pageSize.getWidth();
+  const M = 48; let y = 0;
+
+  const val = id => document.getElementById(id).value || '—';
+  const radioVal = name => (document.querySelector(`input[name="${name}"]:checked`)||{}).value || '—';
+
+  const TEAL = [84,164,179];
+  const GRIS = [99,100,105];
+  const INK  = [20,20,20];
+
+  // Encabezado de marca
+  doc.setFillColor(...TEAL);
+  doc.rect(0, 0, PAGE_W, 76, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(22);
+  doc.text('UBICTUM', M, 36);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.setCharSpace(1.1);
+  doc.text('LA PUERTA DE ENTRADA AL MERCADO', M, 50);
+  doc.setCharSpace(0);
+
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('REPORTE DE AUSENCIA', PAGE_W-M, 36, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.text(`FO-UB-181  ·  ${document.getElementById('fecha-actual').textContent}`, PAGE_W-M, 50, {align:'right'});
+
+  y = 108;
+
+  const sectionTitle = (t)=>{
+    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.setCharSpace(0.6);
+    doc.text(t.toUpperCase(), M, y); doc.setCharSpace(0);
+    y += 6;
+    doc.setDrawColor(...TEAL); doc.setLineWidth(1);
+    doc.line(M, y, PAGE_W-M, y);
+    y += 18;
+  };
+  const sectionTitleAt = (yPos, t)=>{
+    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.setCharSpace(0.6);
+    doc.text(t.toUpperCase(), M, yPos); doc.setCharSpace(0);
+    doc.setDrawColor(...TEAL); doc.setLineWidth(1);
+    doc.line(M, yPos+6, PAGE_W-M, yPos+6);
+  };
+
+  doc.setFontSize(10);
+  const line = (label, value) => {
+    doc.setFont('helvetica','bold'); doc.setTextColor(...GRIS); doc.text(label+':', M, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.text(String(value), M+160, y);
+    y += 18;
+  };
+
+  sectionTitle('Datos del empleado');
+  line('No. de empleado', val('num-empleado'));
+  line('Nombre', val('empleado'));
+  line('Área', val('area'));
+  line('Departamento', val('departamento'));
+
+  y += 4;
+  sectionTitle('Tipo de ausencia y motivo');
+  line('Tipo de ausencia', radioVal('tipo'));
+
+  const motivoActivo = document.querySelector('.motivo-panel.active').dataset.motivo;
+  if (motivoActivo === 'permisos') {
+    line('Permiso otorgado por', radioVal('permiso'));
+    if(document.getElementById('permiso-otro-detalle').value) line('  Detalle "Otro"', val('permiso-otro-detalle'));
+    line('Del / Al', `${val('permiso-del')}  a  ${val('permiso-al')}`);
+    line('Días otorgados / restantes', `${val('dias-otorgados')} / ${val('dias-restantes')}`);
+    line('Antigüedad / Periodo', val('antiguedad-periodo'));
+  } else if (motivoActivo === 'incapacidades') {
+    line('Incapacidad por', radioVal('incapacidad'));
+    line('Del / Al', `${val('incapacidad-del')}  a  ${val('incapacidad-al')}`);
+    line('No. de incapacidad', val('incapacidad-numero'));
+    line('No. de días de incapacidad', val('incapacidad-dias'));
+  } else {
+    line('Otro motivo', val('otros-detalle'));
+    line('Del / Al', `${val('otros-del')}  a  ${val('otros-al')}`);
+    line('No. de días', val('otros-dias'));
+  }
+
+  y += 4;
+  sectionTitle('Observaciones');
+  doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.setFontSize(10);
+  const obs = doc.splitTextToSize(val('observaciones'), PAGE_W - 2*M);
+  doc.text(obs, M, y); y += obs.length*14 + 20;
+
+  const firmaW = 170, firmaH = 65;
+  const firmaY = Math.max(y + 20, 620);
+  sectionTitleAt(firmaY - 26, 'Firmas');
+  const labels = ['Solicitó (Empleado)','Revisó (Jefe inmediato)'];
+  const nombreIds = ['nombre-solicito','nombre-reviso'];
+  const ids = ['firma-solicito','firma-reviso'];
+  ids.forEach((id,i)=>{
+    const x = M + i*220;
+    if(!pads[id].isEmpty()){
+      doc.addImage(pads[id].toDataURL('image/png'), 'PNG', x, firmaY, firmaW, firmaH);
+    }
+    doc.setDrawColor(...TEAL); doc.setLineWidth(0.75);
+    doc.line(x, firmaY+firmaH+4, x+firmaW, firmaY+firmaH+4);
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...TEAL);
+    doc.text(labels[i], x, firmaY+firmaH+16);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK);
+    doc.text(val(nombreIds[i]), x, firmaY+firmaH+29);
+  });
+
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2,'0');
+  const mm = String(hoy.getMonth()+1).padStart(2,'0');
+  const yyyy = hoy.getFullYear();
+  const nombre = `FO-UB-181-${val('num-empleado')}-${dd}${mm}${yyyy}.pdf`;
+  doc.save(nombre);
+
+  status.textContent = 'PDF generado: ' + nombre + '  (en producción: subir a SharePoint vía Graph API en lugar de descargar)';
+  status.className = 'status ok';
+});
+</script>
+</body>
+</html>
