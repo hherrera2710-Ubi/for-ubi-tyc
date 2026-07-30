@@ -1,1666 +1,434 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Dinámico CEDIS 2 | UBICTUM</title>
-    <style>
-        /* Paleta de colores UBICTUM y Referencias */
-        :root {
-            --ubictum-teal: #50A3B8; 
-            --ubictum-blue-dark: #1E3A8A; 
-            --ubictum-gray: #616265; 
-            --bg-color: #F4F7F6;
-            --white: #FFFFFF;
-            --alert-red: #E74C3C;
-            --alert-orange: #E67E22;
-            --alert-yellow: #F1C40F;
-            --success-green: #2ECC71;
-            --sap-blue: #008FD3;
-            --timeline-purple: #6c2b85;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--ubictum-gray); display: flex; flex-direction: column; height: 100vh; }
-
-        /* HEADER & SIMULADOR DE UBICACIÓN */
-        header { background-color: var(--white); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
-        .logo-container { display: flex; flex-direction: column; }
-        .logo-text { font-size: 30px; font-weight: 800; letter-spacing: 2px; }
-        .logo-u { color: var(--ubictum-teal); }
-        .logo-bictum { color: var(--ubictum-gray); }
-        .logo-subtitle { font-size: 9px; letter-spacing: 1.5px; color: var(--ubictum-gray); margin-top: -5px; }
-
-        .location-selector { background: #eef2f5; padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;}
-        .location-selector span { font-weight: bold; font-size: 14px; color: var(--ubictum-gray); }
-        .btn-loc { background: var(--white); border: 1px solid var(--ubictum-gray); color: var(--ubictum-gray); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; }
-        .btn-loc.active-loc { background: var(--ubictum-teal); color: var(--white); border-color: var(--ubictum-teal); }
-
-        .screen-info { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-        .screen-info-text { text-align: right; }
-        .toggle-info-btn {
-            flex-shrink: 0; width: 38px; height: 38px; border-radius: 9px;
-            border: 1px solid #d5dae2; background: #f4f6f8; color: var(--ubictum-blue-dark);
-            font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: 0.2s;
-        }
-        .toggle-info-btn:hover { background: #e9edf3; }
-        .toggle-info-btn.active { background: #e3e6ea; color: var(--ubictum-gray); border-color: #cdd2d9; }
-        .screen-info h2 { color: var(--ubictum-teal); font-size: 18px; margin-bottom: 4px;}
-        .screen-info p { font-size: 12px; color: #888; font-weight: bold;}
-
-        /* CONTENEDOR PRINCIPAL */
-        main { flex-grow: 1; padding: 25px 40px; position: relative; overflow: hidden; }
-
-        /* PANTALLAS (VISTAS) */
-        .view-section { display: none; animation: fadeIn 0.5s ease-in-out; height: 100%; flex-direction: column;}
-        .view-section.active { display: flex; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .view-header-container { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 3px solid var(--ubictum-teal); padding-bottom: 10px; flex-shrink: 0; }
-        .view-title { font-size: 24px; color: var(--ubictum-gray); margin: 0;}
-        
-        /* Panel de Filtros */
-        .filter-panel { display: flex; gap: 20px; align-items: center; background: #eef2f5; padding: 8px 15px; border-radius: 6px; border: 1px solid #dcdcdc; }
-        .filter-panel label { font-size: 13px; font-weight: bold; color: var(--ubictum-blue-dark); display: flex; align-items: center; gap: 5px; cursor: pointer; }
-        .filter-panel select { padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; outline: none; }
-        .filter-panel input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-
-        /* ==========================================
-           VISTA 1: EMBARQUES 
-           ========================================== */
-        .layout-embarques { display: flex; flex-direction: column; gap: 18px; height: calc(100% - 60px); }
-        .sidebar-kpis { width: 100%; display: flex; flex-direction: row; gap: 16px; flex-shrink: 0; }
-        .sidebar-kpis .kpi-box { flex: 1; }
-        .kpi-box { background: var(--white); border: 1px solid #EAEAEA; border-radius: 10px; padding: 16px 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border-top: 4px solid var(--ubictum-teal); }
-        .kpi-box-title { color: var(--ubictum-blue-dark); font-weight: 700; font-size: 13px; margin-bottom: 8px; line-height: 1.2; }
-        .kpi-box-value { font-size: 34px; font-weight: 800; color: #333; }
-        .main-table-container { flex-grow: 1; width: 100%; background: var(--white); border-radius: 10px; border: 1px solid #EAEAEA; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
-        .table-embarques-scroll { flex: 1; min-height: 0; overflow-y: auto; }
-        .table-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #EEE; flex-shrink: 0; }
-        .table-header-top h3 { color: var(--ubictum-blue-dark); font-size: 16px; font-weight: bold; }
-        .date-badge { background: var(--white); border: 1px solid #CCC; padding: 5px 15px; border-radius: 4px; font-weight: bold; color: #333; }
-        
-        .table-embarques { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .table-embarques th { color: #888; font-weight: 600; text-align: left; padding: 10px; border-bottom: 2px solid #EEE; position: sticky; top: 0; background: var(--white); z-index: 2; }
-        .table-embarques td { padding: 12px 10px; border-bottom: 1px solid #F5F5F5; color: #444; vertical-align: middle; }
-        
-        .badge { padding: 5px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 90px; }
-        .badge-success { background: #E8F5E9; color: #2E7D32; } 
-        .badge-warning { background: #FFF8E1; color: #F57F17; } 
-        .badge-danger { background: #FFEBEE; color: #C62828; } 
-        .badge-neutral { background: #F5F5F5; color: #757575; border: 1px solid #E0E0E0; } 
-        .icon-circle { display: inline-flex; justify-content: center; align-items: center; width: 14px; height: 14px; border-radius: 50%; color: white; font-size: 9px; }
-        .icon-check { background: #2E7D32; }
-        .icon-alert { background: #C62828; }
-        .icon-warn { color: #F57F17; font-size: 12px; }
-
-        .prog-td { width: 120px; }
-        .prog-bar-bg { background: #E0E0E0; border-radius: 4px; height: 16px; width: 100%; overflow: hidden; position: relative;}
-        .prog-bar-fill { background: var(--sap-blue); height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 5px; color: white; font-size: 10px; font-weight: bold; }
-        .prog-bar-fill.high { background: var(--alert-red); }
-
-        /* ==========================================
-           VISTA 2: FACILITADORES (TARJETAS HORIZONTALES)
-           ========================================== */
-        /* ---- TABLA TIMELINE PAGINADA (registro por TU, agrupado por CDR) ---- */
-        .tl-table-wrap { flex: 1; min-height: 0; overflow: hidden; width: 100%; background: var(--white); border-radius: 12px; border: 1px solid #e8edf3; box-shadow: 0 4px 14px rgba(30,58,138,0.06); padding: 6px 14px; }
-        .tl-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .tl-table td { padding: 4px 8px; text-align: center; font-size: 15px; vertical-align: middle; }
-        .tl-table td:nth-child(1) { width: 150px; }
-        .tl-table td:nth-child(2) { width: 195px; }
-
-        /* Fila de grupo (CDR + objetivos) */
-        .tl-group td { border-top: 2px solid #e3e8f2; background: #f7f9fc; padding-top: 5px; padding-bottom: 5px; }
-        .tl-group .tl-cdrname { text-align: left !important; font-weight: 800; color: var(--ubictum-blue-dark); font-size: 16px; padding-left: 12px !important; }
-        .tl-group .tl-cdr { text-align: left; line-height: 1.15; }
-        .tl-group .tl-cdr .tl-tucount { color: var(--ubictum-teal); font-size: 13px; font-weight: 800; }
-        .tl-group .tl-cdr .tl-tunum { margin-left: 10px; }
-        .tl-group .tl-cdr .tl-objtag { display: block; font-size: 11px; font-weight: 800; color: #d84315; margin-bottom: 1px; }
-        .tl-objh { font-size: 14px; font-weight: 800; color: var(--ubictum-blue-dark); font-family: 'Consolas','Courier New',monospace; line-height: 1.1; }
-        .tl-objh .tl-colh { display: block; font-size: 10px; font-weight: 800; color: #111; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; font-family: 'Segoe UI', sans-serif; }
-
-        /* Filas de TU */
-        .tl-row td { border-bottom: 1px solid #f1f3f7; }
-        .tl-row:hover td { background: #f6f9fd; }
-        .tl-tu { text-align: right !important; font-weight: 800; color: var(--sap-blue); font-family: 'Consolas','Courier New',monospace; font-size: 15px; padding-right: 18px !important; }
-        .tl-cellval { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-        .tl-time { font-weight: 800; color: #2c2c2c; font-family: 'Consolas','Courier New',monospace; }
-        .tl-ic { width: 14px; height: 14px; display: inline-block; flex-shrink: 0; }
-        .tl-tiempo { color: #d84315; font-weight: 800; font-family: 'Consolas','Courier New',monospace; }
-        .tl-empty { color: #cbd2da; font-weight: 700; }
-
-        /* Chip de estatus por TU */
-        .tl-est { display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 10.5px; font-weight: 800; color: #fff; font-family: 'Consolas','Courier New',monospace; letter-spacing: 0.3px; white-space: nowrap; }
-        .est-tiempo { background: var(--success-green); }
-        .est-retrasado { background: var(--alert-red); }
-        .est-riesgo { background: var(--alert-orange); }
-        .est-proceso { background: var(--sap-blue); }
-        .est-programado { background: #8c97a3; }
-
-        /* Paginador */
-        .tl-pager { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 20px; padding: 12px 0 2px; }
-        .tl-pgbtn { background: var(--ubictum-blue-dark); color: #fff; border: none; padding: 9px 22px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .tl-pgbtn:hover { background: #16296b; }
-        .tl-page-info { font-size: 15px; font-weight: 800; color: var(--ubictum-gray); min-width: 120px; text-align: center; }
-
-        .facilitadores-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-            flex: 1;
-            min-height: 0;
-            overflow: hidden;
-            padding-right: 2px;
-        }
-        .cdr-card {
-            background: var(--white);
-            border: 1px solid #EAEAEA;
-            border-radius: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            overflow: hidden;
-            width: 100%;
-            flex: 1 1 0;
-            min-height: 0;
-            display: flex;
-            flex-direction: row;
-            align-items: stretch;
-            border-left: 6px solid var(--ubictum-teal);
-            transition: box-shadow 0.2s;
-        }
-        .cdr-card:hover { box-shadow: 0 5px 14px rgba(0,0,0,0.1); }
-        .cdr-card.estado-retrasado  { border-left-color: var(--alert-red); }
-        .cdr-card.estado-riesgo     { border-left-color: var(--alert-orange); }
-        .cdr-card.estado-proceso    { border-left-color: var(--sap-blue); }
-        .cdr-card.estado-tiempo     { border-left-color: var(--success-green); }
-        .cdr-card.estado-programado { border-left-color: #b0b8c0; }
-
-        /* Cabecera lateral (izquierda): 2 columnas -> [CDR + objetivo] | [estatus] */
-        .cdr-card-header {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 14px;
-            padding: 4px 16px;
-            width: 420px;
-            flex-shrink: 0;
-            border-right: 1px solid #f0f0f0;
-            background: #fafbfc;
-            overflow: hidden;
-        }
-        .cdr-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-        .cdr-name { font-size: 17px; font-weight: 800; color: var(--ubictum-blue-dark); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cdr-obj { font-size: 10px; color: #8a8f98; line-height: 1.1; white-space: nowrap; }
-        .cdr-obj strong { color: var(--ubictum-gray); font-size: 10px; }
-        .cdr-tucol { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; flex-shrink: 0; padding: 0 6px; border-left: 1px solid #ececec; }
-        .cdr-tucol-lbl { font-size: 8px; font-weight: 700; color: #9aa0a6; text-transform: uppercase; letter-spacing: 0.5px; }
-        .cdr-tucol-val { font-size: 15px; font-weight: 800; color: var(--sap-blue); font-family: 'Consolas', 'Courier New', monospace; line-height: 1; }
-
-        /* Barra de estatus tipo aeropuerto */
-        .cdr-status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            padding: 4px 9px;
-            border-radius: 5px;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-weight: 800;
-            font-size: 12px;
-            letter-spacing: 0.4px;
-            color: white;
-            text-align: center;
-            width: max-content;
-            max-width: 100%;
-        }
-        .status-tiempo     { background: var(--success-green); }
-        .status-retrasado  { background: var(--alert-red); animation: blink 1.4s infinite; }
-        .status-riesgo     { background: var(--alert-orange); }
-        .status-proceso    { background: var(--sap-blue); }
-        .status-programado { background: #8c97a3; }
-
-        /* Cuerpo de datos (derecha, en fila) */
-        .cdr-card-body {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 1px;
-            background: #f0f0f0;
-            flex-grow: 1;
-        }
-        .cdr-field { background: var(--white); padding: 4px 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
-        .cdr-field-label { font-size: 8px; font-weight: 800; color: #111; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; line-height: 1.1; }
-        .cdr-field-value { font-size: 17px; font-weight: 800; color: #2c2c2c; font-family: 'Consolas', 'Courier New', monospace; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .fv-time { font-weight: 800; }
-        .fv-ic { width: 13px; height: 13px; display: inline-block; flex-shrink: 0; }
-        .fv-empty { color: #cbd2da; font-weight: 700; }
-        .cdr-field.field-calc { background: #fff8e1; }
-        .cdr-field.field-calc .cdr-field-value { color: #d84315; font-size: 14px; }
-        .cdr-field.field-salida { background: #f0f8ff; }
-        .cdr-field.field-salida .cdr-field-value { color: var(--ubictum-blue-dark); }
-
-        /* Responsive: en pantallas angostas, apilar cabecera arriba */
-        @media (max-width: 900px) {
-            .cdr-card { flex-direction: column; }
-            .cdr-card-header { width: 100%; border-right: none; border-bottom: 1px solid #f0f0f0; flex-direction: row; justify-content: space-between; align-items: center; }
-            .cdr-card-body { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        /* ==========================================
-           VISTA 3: EMBARQUES / CDM > CDR (MATRIZ KPI)
-           ========================================== */
-        .matriz-container { background: var(--white); border-radius: 14px; border: 1px solid #e8edf3; box-shadow: 0 8px 24px rgba(30,58,138,0.08); overflow: hidden; flex: 1; min-height: 0; width: 100%; padding: 6px 8px; }
-        .table-matriz { width: 100%; height: 100%; border-collapse: separate; border-spacing: 0 2px; font-size: 13px; text-align: center; }
-        .table-matriz thead { }
-
-        /* Fila 1 de encabezado: categorías de proceso */
-        .table-matriz thead tr:nth-child(1) th {
-            background: linear-gradient(135deg, #1E3A8A 0%, #2a4eb0 100%);
-            color: var(--white); padding: 7px 10px; border: none; font-size: 14px; font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-        .table-matriz thead tr:nth-child(1) th:first-child { background: transparent; }
-        .table-matriz thead tr:nth-child(1) th.th-tu    { background: #ffffff; color: #000000; border-top-left-radius: 10px; }
-        .table-matriz thead tr:nth-child(1) th.th-teal2 { background: #54a4b3; }
-        .table-matriz thead tr:nth-child(1) th.th-gray2 { background: #636469; }
-        .table-matriz thead tr:nth-child(1) th.th-black { background: #000000; }
-        .table-matriz thead tr:nth-child(1) th:nth-child(2) { border-top-left-radius: 10px; }
-        .table-matriz thead tr:nth-child(1) th:last-child { border-top-right-radius: 10px; }
-
-        /* Fila 2 de encabezado: KPI + objetivo */
-        .table-matriz thead tr:nth-child(2) th {
-            background: #eef2fb; color: var(--ubictum-blue-dark); padding: 4px 8px; font-weight: 700; font-size: 12px;
-            border: none; border-bottom: 2px solid #dde4f5;
-        }
-        .table-matriz thead tr:nth-child(2) th:first-child { background: #eef2fb; text-align: left; padding-left: 18px; }
-        .objetivo-label {
-            font-size: 8px; color: var(--ubictum-blue-dark); display: inline-block; margin-top: 1px; font-weight: 700;
-            background: var(--white); border: 1px solid #c9d4ee; padding: 1px 6px; border-radius: 10px;
-        }
-
-        /* Cuerpo: filas que reparten el alto disponible */
-        .table-matriz tbody tr { transition: 0.15s; }
-        .table-matriz tbody tr:hover td { background-color: #f6f9fd; }
-        .table-matriz tbody td {
-            padding: 1px 8px; border: none; border-bottom: 1px solid #f0f2f6; background: var(--white);
-            font-weight: 600; color: #333; vertical-align: middle;
-        }
-        .table-matriz tbody td:first-child {
-            text-align: left; font-weight: 800; color: var(--ubictum-blue-dark); padding-left: 18px; font-size: 17px;
-            position: sticky; left: 0; z-index: 2; background: var(--white);
-            border-left: 4px solid transparent;
-        }
-
-        /* Fila resumen CDM */
-        .row-cdm td { background: #eef6f8 !important; font-size: 12.5px; padding: 1px 8px; }
-        .row-cdm td:first-child {
-            background: #eef6f8 !important; color: var(--ubictum-blue-dark); font-weight: 800; font-size: 18px;
-            border-left: 4px solid var(--ubictum-teal);
-        }
-
-        /* Chips de KPI (pill con color) */
-        .kpi-chip {
-            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-            min-width: 56px; padding: 3px 11px; border-radius: 20px;
-            font-weight: 800; font-size: 12px; color: var(--white);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        }
-        .kpi-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.85); }
-        .row-cdm .kpi-chip { font-size: 12px; padding: 4px 12px; }
-
-        /* Celdas: mismo estilo que Timeline (fuente/tamaños/colores) */
-        .mx-cell { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
-        .mx-ic { width: 16px; height: 16px; flex-shrink: 0; display: inline-block; }
-        .mx-val { font-weight: 800; font-size: 19px; color: #2c2c2c; font-family: 'Consolas','Courier New',monospace; }
-        .mx-time { font-size: 12px; color: #5b6470; font-weight: 700; }
-        .mx-pzas { font-size: 12px; color: #5b6470; font-weight: 700; white-space: nowrap; }
-        .row-cdm .mx-val { font-size: 19.5px; }
-        .mx-cell.attr .mx-ic { width: 21px; height: 21px; }
-        .mx-empty { color: #cbd2da; font-size: 17px; font-weight: 700; }
-
-        /* Columna TU en CDM > CDR + animación tipo tablero */
-        .tu-cell { white-space: nowrap; }
-        .tu-roll { font-size: 16px; font-weight: 800; color: var(--sap-blue); font-family: 'Consolas','Courier New',monospace; display: inline-block; }
-        .tu-count { font-size: 10px; font-weight: 700; color: #98a0aa; margin-left: 6px; }
-        .tu-flip { animation: tuflip 0.45s ease; }
-        @keyframes tuflip {
-            0%   { transform: translateY(-70%); opacity: 0; filter: blur(1px); }
-            55%  { transform: translateY(6%);   opacity: 1; filter: blur(0); }
-            100% { transform: translateY(0);    opacity: 1; }
-        }
-
-        .status-green  { background: linear-gradient(135deg, #27ae60, #2ECC71); }
-        .status-yellow { background: linear-gradient(135deg, #e6b800, #F1C40F); color: #4a3b00; }
-        .status-yellow::before { background: rgba(74,59,0,0.55); }
-        .status-orange { background: linear-gradient(135deg, #d2691e, #E67E22); }
-        .status-red    { background: linear-gradient(135deg, #c0392b, #E74C3C); }
-        .status-tbd    { background: #eef0f3; color: #9aa0a6; box-shadow: none; font-weight: 700; }
-        .status-tbd::before { background: #c4c9d0; }
-
-        /* ==========================================
-           VISTA RESUMEN EJECUTIVO
-           ========================================== */
-        .resumen-container { display: flex; flex-direction: column; gap: 18px; height: 100%; overflow-y: auto; padding-right: 6px; padding-bottom: 10px; }
-        .res-section { background: var(--white); border: 1px solid #e8edf3; border-radius: 14px; padding: 20px 24px; box-shadow: 0 4px 14px rgba(30,58,138,0.06); flex-shrink: 0; }
-        .res-section.intro { background: linear-gradient(135deg, #eef7f9 0%, #f4fafb 100%); border-color: #cfe6ec; }
-        .res-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-        .res-num { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, var(--ubictum-blue-dark), #2a4eb0); color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; }
-        .res-head h3 { color: var(--ubictum-blue-dark); font-size: 18px; font-weight: 800; margin: 0; }
-        .res-p { font-size: 13.5px; color: #444; line-height: 1.6; margin-bottom: 10px; }
-        .res-p:last-child { margin-bottom: 0; }
-        .res-p strong { color: var(--ubictum-gray); }
-
-        /* Cards de zonas */
-        .zonas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 16px; }
-        .zona-card { border: 1px solid #e8edf3; border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.04); display: flex; flex-direction: column; }
-        .zona-card .zc-top { padding: 14px 16px; color: #fff; }
-        .zona-card.zc-teal   .zc-top { background: linear-gradient(135deg, #50A3B8, #5fb4c9); }
-        .zona-card.zc-purple .zc-top { background: linear-gradient(135deg, #6c2b85, #8a3aa8); }
-        .zona-card.zc-blue   .zc-top { background: linear-gradient(135deg, #1E3A8A, #2a4eb0); }
-        .zc-zona { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.9; }
-        .zc-pantalla { font-size: 17px; font-weight: 800; margin-top: 3px; }
-        .zc-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-        .zc-modo { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 20px; width: max-content; }
-        .zc-modo.fijo { background: #ffeaea; color: #c0392b; }
-        .zc-modo.carrusel { background: #eaf6ee; color: #1e7e44; }
-        .zc-prop { font-size: 12.5px; color: #555; line-height: 1.5; }
-
-        /* Tablas de mapeo (reutiliza estética arq) */
-        .res-map-title { font-size: 14px; font-weight: 800; color: var(--ubictum-teal); margin: 14px 0 8px; }
-        .res-map-desc { font-size: 12.5px; color: #555; line-height: 1.5; margin-bottom: 10px; }
-        .res-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; margin-bottom: 6px; border-radius: 8px; overflow: hidden; border: 1px solid #e6e6e6; }
-        .res-table th { background: linear-gradient(135deg, #1E3A8A, #2a4eb0); color: #fff; padding: 9px 10px; text-align: left; font-size: 11px; font-weight: 700; }
-        .res-table td { padding: 8px 10px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
-        .res-table tr:last-child td { border-bottom: none; }
-        .res-table tr:nth-child(even) td { background: #f7f9fc; }
-        .res-table .c-campo { font-weight: 700; color: var(--ubictum-blue-dark); width: 28%; }
-        .res-table .c-desc { color: #555; width: 42%; }
-
-        /* Origen / fuentes */
-        .res-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
-        .src-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #fff; }
-        .src-ud  { background: var(--ubictum-teal); }
-        .src-ewm { background: var(--sap-blue); }
-        .src-pbi { background: #C9A100; }
-        .src-calc{ background: #d84315; }
-
-        /* Listas */
-        .res-list { list-style: none; padding: 0; margin: 6px 0 0; }
-        .res-list li { font-size: 13px; color: #444; line-height: 1.5; padding-left: 22px; position: relative; margin-bottom: 8px; }
-        .res-list li::before { content: ''; position: absolute; left: 4px; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--ubictum-teal); }
-        .res-list.num { counter-reset: rlist; }
-        .res-list.num li::before { content: counter(rlist); counter-increment: rlist; background: var(--ubictum-blue-dark); color: #fff; font-size: 9px; font-weight: 800; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; left: 0; top: 3px; }
-
-        /* Dos columnas alcance */
-        .res-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .res-box { border: 1px solid #e8edf3; border-radius: 10px; padding: 14px 16px; }
-        .res-box.ok { background: #f3faf5; border-color: #cdead6; }
-        .res-box.pend { background: #fef7f1; border-color: #f5d9c4; }
-        .res-box h4 { font-size: 13px; margin: 0 0 8px; font-weight: 800; }
-        .res-box.ok h4 { color: #1e7e44; }
-        .res-box.pend h4 { color: #c0561e; }
-
-        @media (max-width: 900px) {
-            .zonas-grid, .res-two { grid-template-columns: 1fr; }
-        }
-
-        /* ==========================================
-           VISTA 4: ARQUITECTURA DE DATOS (MAPEO CAMPO / DATA / KPI)
-           ========================================== */
-        .fuentes-container { display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto; padding-bottom: 10px; padding-right: 5px;}
-        .arq-card { background: var(--white); border: 1px solid #EAEAEA; border-radius: 10px; padding: 18px 20px; box-shadow: 0 3px 6px rgba(0,0,0,0.05); flex-shrink: 0; }
-        .arq-card h3 { color: var(--white); background: var(--ubictum-blue-dark); border-radius: 6px; padding: 8px 14px; margin-bottom: 14px; font-size: 16px; display: inline-block; }
-        .arq-table-wrap { overflow-x: auto; }
-        .arq-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-        .arq-table th, .arq-table td { border: 1px solid #e6e6e6; padding: 9px 8px; text-align: center; vertical-align: middle; word-wrap: break-word; }
-        .arq-table th.arq-rowlabel { width: 90px; background: #f4f6f8; color: var(--ubictum-gray); font-weight: 800; text-align: left; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; position: sticky; left: 0; z-index: 1; }
-        .arq-row-campo td { background: #fafbfc; color: var(--ubictum-blue-dark); font-weight: 700; font-size: 12px; }
-        .arq-row-kpi td { color: #666; font-style: italic; font-size: 11px; }
-        .arq-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; color: white; display: inline-block; line-height: 1.3; }
-        .badge-ud  { background-color: var(--ubictum-teal); }
-        .badge-ewm { background-color: var(--sap-blue); }
-        .badge-pbi { background-color: #F2C811; color: #3a2e00; }
-        .arq-legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; font-weight: 600; color: var(--ubictum-gray); }
-        .arq-legend .arq-badge { margin-right: 6px; }
-
-        /* ==========================================
-           SIMULACIÓN DE PANTALLA VERTICAL (Transportes)
-           ========================================== */
-        .layout-embarques { width: 52%; min-width: 700px; max-width: 1000px; margin: 0 auto; }
-        #vista-embarques .table-embarques { font-size: 12.5px; }
-        #vista-embarques .table-embarques th, #vista-embarques .table-embarques td { padding: 9px 8px; }
-        #vista-embarques .prog-td { width: 95px; }
-        #vista-embarques .badge { min-width: 0; padding: 4px 8px; font-size: 10.5px; }
-
-        /* ==========================================
-           VISTA EMBARQUES / PUERTAS (PANTALLA VERTICAL)
-           ========================================== */
-        .puerta-wrap { flex: 1; min-height: 0; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; }
-        .puerta-screen {
-            width: 100%; max-width: 460px; flex-shrink: 0;
-            background: linear-gradient(160deg, #ffffff 0%, #eef1fa 55%, #e3e8f6 100%);
-            border: 8px solid #b6a30c; border-radius: 14px;
-            padding: 22px 24px 0; display: flex; flex-direction: column; gap: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-            transform-origin: top center;
-        }
-        .pt-top { display: flex; justify-content: space-between; align-items: flex-start; }
-        .pt-clock { font-size: 30px; font-weight: 800; color: var(--ubictum-blue-dark); letter-spacing: 1px; }
-        .pt-logo { text-align: right; line-height: 1; }
-        .pt-logo .l1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
-        .pt-logo .l2 { font-size: 7px; letter-spacing: 1px; color: var(--ubictum-gray); }
-
-        .pt-id { display: flex; justify-content: space-between; align-items: flex-end; }
-        .pt-label { display: block; font-size: 13px; font-weight: 800; color: var(--ubictum-gray); letter-spacing: 3px; }
-        .pt-num { font-size: 78px; font-weight: 900; color: #b6a30c; line-height: 0.9; }
-        .pt-destino { text-align: right; }
-        .pt-dest { font-size: 64px; font-weight: 900; color: #a9cce3; line-height: 0.9; }
-
-        .pt-meta { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
-        .pt-meta .pt-label { letter-spacing: 2px; font-size: 12px; }
-        .pt-val { font-size: 30px; font-weight: 800; color: var(--ubictum-blue-dark); line-height: 1; }
-        .pt-meta .right { text-align: right; }
-        .pt-tu { font-size: 26px; font-weight: 800; color: var(--ubictum-gray); }
-
-        .pt-card { display: flex; flex-direction: column; gap: 8px; }
-        .pt-bar { background: linear-gradient(135deg, #2a3f7a, #3b5bb0); color: #fff; text-align: center; font-weight: 800; letter-spacing: 3px; font-size: 17px; padding: 9px; border-radius: 8px; }
-        .pt-stats { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 2px; gap: 6px; }
-        .pt-stats > div { flex: 1; }
-        .pt-stats .center { text-align: center; }
-        .pt-stats .right { text-align: right; }
-        .pt-stats .lbl { font-size: 11px; font-weight: 800; color: var(--ubictum-gray); letter-spacing: 0.5px; display: block; }
-        .pt-stats .big { font-size: 25px; font-weight: 800; color: var(--ubictum-blue-dark); }
-        .pt-stats .avance { color: var(--ubictum-teal); }
-
-        .pt-gauge { position: relative; width: 200px; height: 200px; margin: -6px auto -16px; }
-        .pt-gauge svg { width: 100%; height: 100%; transform: scaleY(1); }
-        .gauge-track { stroke: #cfd8ea; }
-        .gauge-prog { stroke: #2f4fb0; transition: stroke-dashoffset 0.9s ease; }
-        .gauge-center { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-52%); text-align: center; }
-        .gauge-pct { font-size: 42px; font-weight: 900; color: var(--ubictum-blue-dark); line-height: 1; }
-        .gauge-unit { font-size: 11px; font-weight: 700; color: #8a8f98; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-
-        .pt-footer { background: linear-gradient(135deg, #b6a30c, #c9b400); color: #2b2600; text-align: center; font-style: italic; font-weight: 800; font-size: 22px; padding: 12px; margin: 6px -24px 0; border-radius: 0 0 6px 6px; }
-
-        /* FOOTER / CONTROLES */
-        footer { background-color: var(--ubictum-gray); color: var(--white); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
-        #carousel-controls { display: flex; }
-        .footer-left { display: flex; align-items: center; gap: 16px; }
-        #btn-reiniciar { background-color: var(--ubictum-teal); color: #fff; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
-        #btn-reiniciar:hover { background-color: #3f8ea0; }
-        .controls button { background-color: var(--white); color: var(--ubictum-gray); border: none; padding: 8px 15px; margin-right: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .controls button:hover, .controls button.active-btn { background-color: var(--ubictum-teal); color: var(--white); }
-        .status-indicator { display: flex; align-items: center; font-size: 12px; }
-        .dot { height: 10px; width: 10px; background-color: var(--success-green); border-radius: 50%; display: inline-block; margin-right: 8px; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ubictum · Digitalización de Incidencias</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#000000;
+    --gris:#636469;
+    --paper:#faf9f6;
+    --line:#d9dadb;
+    --accent:#54a4b3;
+    --accent-soft:#e5f1f3;
+    --danger:#8a2b1f;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+  .topbar{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:24px;
+  }
+  .brand-lockup{display:flex; align-items:center; gap:10px;}
+  .brand-lockup svg{display:block;}
+  .brand-text{display:flex; flex-direction:column; gap:2px;}
+  .brand-word{font-weight:800; letter-spacing:.06em; font-size:19px; color:#000000;}
+  .brand-word b{color:var(--accent);}
+  .brand-slogan{font-size:9px; letter-spacing:.16em; color:var(--gris); text-transform:uppercase;}
+  .stepper{font-family:var(--mono); font-size:11px; color:#000000;}
+  select.formato{
+    width:100%; padding:12px 14px; font-size:15px; border:1.5px solid var(--ink);
+    background:#fff; margin-bottom:20px; border-radius:2px;
+  }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:3px;
+    padding:22px 20px; margin-bottom:16px;
+  }
+  .card h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+    color:var(--accent); margin:0 0 16px; border-bottom:1px solid var(--accent-soft); padding-bottom:8px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .grid.g3{grid-template-columns:1fr 1fr 1fr;}
+  label{display:block; font-size:11px; color:var(--gris); margin-bottom:4px;}
+  .motivo-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .motivo-tab{
+    flex:1; min-width:150px; padding:11px 12px; text-align:center; font-size:12px;
+    font-weight:700; letter-spacing:.03em; border:1.5px solid var(--line); border-radius:2px;
+    background:#fdfdfc; color:var(--gris); cursor:pointer;
+  }
+  .motivo-tab.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .motivo-panel{display:none;}
+  .motivo-panel.active{display:block;}
+  .subtitulo{font-size:11px;font-weight:700;color:var(--ink);margin-bottom:8px;display:block;}
+  input[type=text], input[type=date], input[type=number], textarea{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px;
+    font-size:14px; font-family:inherit; background:#fdfdfc;
+  }
+  textarea{resize:vertical; min-height:50px;}
+  .field{margin-bottom:0;}
+  .opciones{display:flex; flex-wrap:wrap; gap:10px 22px;}
+  .opt{
+    display:flex; align-items:center; gap:8px; font-size:14px;
+    border:1px solid var(--line); padding:9px 12px; border-radius:2px; cursor:pointer;
+    background:#fdfdfc;
+  }
+  .opt input{width:16px; height:16px;}
+  .opt.checked{background:var(--accent-soft); border-color:var(--accent);}
+  .motivo-block{border:1px dashed var(--line); padding:12px; border-radius:2px; margin-bottom:10px;}
+  .motivo-block .opciones{margin-bottom:8px;}
+  .firmas{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .firma-box{text-align:center;}
+  .firma-box canvas{
+    width:100%; height:110px; border:1px solid var(--ink); border-radius:2px;
+    background:#fff; touch-action:none;
+  }
+  .firma-box p{font-size:11px; margin:6px 0 4px; color:#71706b;}
+  .firma-box button{
+    font-size:10px; background:none; border:none; color:var(--danger);
+    text-decoration:underline; cursor:pointer; padding:0;
+  }
+  .actions{
+    position:sticky; bottom:0; background:var(--paper); padding:16px 0 0;
+    display:flex; gap:12px; margin-top:8px;
+  }
+  .btn{
+    flex:1; padding:14px; font-size:14px; font-weight:700; border-radius:2px;
+    border:none; cursor:pointer;
+  }
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:disabled{background:#a9b8ae; cursor:not-allowed;}
+  .btn-secondary{background:#fff; border:1.5px solid var(--ink); color:var(--ink);}
+  .note{
+    font-size:11px; color:#71706b; background:var(--accent-soft); border-radius:2px;
+    padding:10px 12px; margin-top:12px; line-height:1.5;
+  }
+  .status{font-size:12px; margin-top:10px; min-height:16px;}
+  .status.ok{color:var(--accent);}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-    <header>
-        <div class="logo-container">
-            <div class="logo-text"><span class="logo-u">U</span><span class="logo-bictum">BICTUM</span></div>
-            <div class="logo-subtitle">LA PUERTA DE ENTRADA AL MERCADO</div>
+  <div class="topbar">
+    <div class="brand-lockup">
+      <div class="brand-text">
+        <div class="brand-word">UBICTUM</div>
+        <div class="brand-slogan">La puerta de entrada al mercado</div>
+      </div>
+    </div>
+    <div class="stepper" id="fecha-actual"></div>
+  </div>
+
+  <select class="formato" id="formato-select">
+    <option value="ausencia">Reporte de Ausencia (FO-UB-181)</option>
+    <option disabled>— más formatos se agregan aquí —</option>
+  </select>
+
+  <form id="form-ausencia">
+
+    <div class="card">
+      <h2>Datos del empleado</h2>
+      <div class="grid">
+        <div class="field">
+          <label>No. de empleado</label>
+          <input type="text" id="num-empleado" required>
         </div>
-        <div class="location-selector">
-            <span>Pantalla:</span>
-            <button class="btn-loc active-loc" id="loc-embarques" onclick="setUbicacion('embarques')">Transportes</button>
-            <button class="btn-loc" id="loc-puertas" onclick="setUbicacion('puertas')">Puertas</button>
-            <button class="btn-loc" id="loc-facilitadores" onclick="setUbicacion('facilitadores')">Timeline</button>
-            <button class="btn-loc" id="loc-lideres" onclick="setUbicacion('lideres')">CDM &gt; CDR</button>
-            <button class="btn-loc" id="loc-resumen" onclick="setUbicacion('resumen')" style="display:none; background-color: #e6f2f5; border-color: var(--ubictum-teal); color: var(--ubictum-teal);">Resumen</button>
-            <button class="btn-loc" id="loc-fuentes" onclick="setUbicacion('fuentes')" style="display:none; background-color: #e6eaf5; border-color: var(--ubictum-blue-dark); color: var(--ubictum-blue-dark);">Arq. Data</button>
+        <div class="field">
+          <label>Nombre del empleado</label>
+          <input type="text" id="empleado" required>
         </div>
-        <div class="screen-info">
-            <button class="toggle-info-btn active" id="toggle-info-btn" onclick="toggleInfoButtons()" title="Mostrar / ocultar Resumen y Arq. Data">&#9652;</button>
-            <div class="screen-info-text">
-                <h2 id="ubicacion-pantalla">📍 Embarques / Transportes</h2>
-                <p id="modo-pantalla" style="color: var(--alert-red);">Modo: Fijo (Monitoreo SAP EWM)</p>
-            </div>
+        <div class="field">
+          <label>Área</label>
+          <input type="text" id="area" required>
         </div>
-    </header>
-
-    <main>
-        <!-- ====================================================
-             VISTA 1: EMBARQUES
-             ==================================================== -->
-        <section id="vista-embarques" class="view-section active">
-            <div class="view-header-container">
-                <h2 class="view-title">Transportes</h2>
-            </div>
-            <div class="layout-embarques">
-                <div class="sidebar-kpis">
-                    <div class="kpi-box"><div class="kpi-box-title">Total Viajes Programados</div><div class="kpi-box-value">25</div></div>
-                    <div class="kpi-box"><div class="kpi-box-title">Pendientes de Salida</div><div class="kpi-box-value">7</div></div>
-                    <div class="kpi-box"><div class="kpi-box-title">Salidas</div><div class="kpi-box-value">18</div></div>
-                </div>
-                <div class="main-table-container">
-                    <div class="table-header-top">
-                        <h3>Estatus TU / Monitoreo SAP EWM</h3>
-                        <div style="font-size: 13px; color: #666;">Fecha Programada de Salida: <span class="date-badge">23/06/2026</span></div>
-                    </div>
-                    <div class="table-embarques-scroll">
-                    <table class="table-embarques">
-                        <thead>
-                            <tr><th>Andén</th><th>TU</th><th>Destino</th><th>Origen</th><th>Estatus</th><th>Salida Obj.</th><th>Estatus Salida</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><strong>1</strong></td><td>39866</td><td>PUEBLA</td><td>UBICTUM II</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>5:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>2</strong></td><td>39897</td><td>LA PAZ</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>5:00</td><td><span class="badge badge-neutral">Sin estatus</span></td></tr>
-                            <tr><td><strong>3</strong></td><td>39899</td><td>MÉXICO SUR</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>5:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>4</strong></td><td>39900</td><td>PUEBLA</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>5:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>5</strong></td><td>39908</td><td>MÉXICO SUR</td><td>UBICTUM II</td><td><span class="badge badge-danger"><span class="icon-circle icon-alert">!</span> DOC RECIBIDA</span></td><td>5:00</td><td><span class="badge badge-neutral">Sin estatus</span></td></tr>
-                            <tr><td><strong>6</strong></td><td>39909</td><td>MORELIA</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>5:30</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>7</strong></td><td>39907</td><td>MÉXICO NORTE</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>6:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>8</strong></td><td>39821</td><td>MONTERREY</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>10:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>9</strong></td><td>39903</td><td>MONTERREY</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>10:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>10</strong></td><td>39824</td><td>TUXTLA</td><td>UBICTUM II</td><td><span class="badge badge-danger"><span class="icon-circle icon-alert">!</span> DOC RECIBIDA</span></td><td>11:00</td><td><span class="badge badge-neutral">Sin estatus</span></td></tr>
-                            <tr><td><strong>11</strong></td><td>39825</td><td>VERACRUZ</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>11:00</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> A tiempo</span></td></tr>
-                            <tr><td><strong>12</strong></td><td>39827</td><td>TUXTLA</td><td>UBICTUM</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>11:00</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> A tiempo</span></td></tr>
-                            <tr><td><strong>13</strong></td><td>39842</td><td>VERACRUZ</td><td>UBICTUM II</td><td><span class="badge badge-success"><span class="icon-circle icon-check">✔</span> SALIDA</span></td><td>11:00</td><td><span class="badge badge-warning"><span class="icon-warn">▲</span> Tarde</span></td></tr>
-                            <tr><td><strong>14</strong></td><td>39901</td><td>TUXTLA</td><td>UBICTUM II</td><td><span class="badge badge-danger"><span class="icon-circle icon-alert">!</span> DOC RECIBIDA</span></td><td>11:00</td><td><span class="badge badge-neutral">Sin estatus</span></td></tr>
-                        </tbody>
-                    </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ====================================================
-             VISTA 2: FACILITADORES (DISEÑO TIPO TARJETAS)
-             ==================================================== -->
-        <section id="vista-tms" class="view-section">
-            <div class="view-header-container">
-                <h2 class="view-title">Timeline</h2>
-            </div>
-
-            <div class="tl-table-wrap">
-                <table class="tl-table">
-                    <tbody id="tl-body"></tbody>
-                </table>
-            </div>
-
-            <div class="tl-pager">
-                <button class="tl-pgbtn" onclick="tlPrevPage()">&#8249; Anterior</button>
-                <span id="tl-page-info" class="tl-page-info">Página 1 / 1</span>
-                <button class="tl-pgbtn" onclick="tlNextPage()">Siguiente &#8250;</button>
-            </div>
-        </section>
-
-        <!-- ====================================================
-             VISTA 3: LÍDERES (MATRIZ SEMÁFORO)
-             ==================================================== -->
-        <section id="vista-kpi" class="view-section">
-            <div class="view-header-container">
-                <h2 class="view-title">CDM &gt; CDR</h2>
-            </div>
-            <div class="matriz-container">
-                <table class="table-matriz" id="matrizDbr">
-                                        <thead>
-                        <tr><th style="background-color: var(--white); border: none;"></th><th class="th-tu">TU</th><th class="th-teal2">Surtido CDM</th><th class="th-teal2">Consolidado</th><th class="th-gray2">Embarque TU</th><th class="th-gray2">Backlog</th><th class="th-black">Salida CDR</th><th class="th-black">Tránsito TU</th></tr>
-                        <tr>
-                            <th>Destino</th>
-                            <th></th>
-                            <th>% Fill rate<br><span class="objetivo-label">Obj: &gt; 99%</span></th>
-                            <th>% Embalado a HU<br><span class="objetivo-label">Obj: &gt; 98%</span></th>
-                            <th>% Embarque a TU<br><span class="objetivo-label">Obj: 100%</span></th>
-                            <th>% Stage Resguardo<br><span class="objetivo-label">Obj: 0%</span></th>
-                            <th>¿Salió a tiempo?</th>
-                            <th>¿Llegó a tiempo?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="row-cdm" data-dest="CDM"><td>CDM</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="MEXICO NORTE"><td>MEXICO NORTE</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="MEXICO SUR"><td>MEXICO SUR</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="PUEBLA"><td>PUEBLA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="BAJIO"><td>BAJIO</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="GUADALAJARA"><td>GUADALAJARA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="MORELIA"><td>MORELIA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="CULIACAN"><td>CULIACAN</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="LA PAZ"><td>LA PAZ</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="CHIHUAHUA"><td>CHIHUAHUA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="TIJUANA"><td>TIJUANA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="MONTERREY"><td>MONTERREY</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="VERACRUZ"><td>VERACRUZ</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="TUXTLA"><td>TUXTLA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                        <tr data-dest="MERIDA"><td>MERIDA</td><td class="tu-cell"><span class="tu-roll"></span><span class="tu-count"></span></td><td data-col="surtido"></td><td data-col="consolidado"></td><td data-col="embarque"></td><td data-col="salida"></td><td data-col="notificacion"></td><td data-col="transito"></td></tr>
-                    </tbody>
-</table>
-            </div>
-        </section>
-
-        <!-- ====================================================
-             VISTA RESUMEN EJECUTIVO (FUERA DEL CARRUSEL)
-             ==================================================== -->
-        <section id="vista-resumen" class="view-section">
-            <div class="view-header-container">
-                <h2 class="view-title">Resumen Ejecutivo · Pantallas Embarques</h2>
-            </div>
-            <div class="resumen-container">
-
-                <!-- 1. Resumen ejecutivo -->
-                <div class="res-section intro">
-                    <div class="res-head"><div class="res-num">1</div><h3>Resumen ejecutivo</h3></div>
-                    <p class="res-p">Se desarrollará un <strong>tablero único en formato monitor</strong> para desplegarse en pantallas físicas. El tablero integra <strong>cuatro pantallas operativas</strong> orientadas a distintas audiencias y zonas de la operación, con el fin de dar visibilidad en tiempo real al flujo de salida de mercancía: desde el embarque por puerta y los tiempos de carga, hasta los KPIs de calidad por destino.</p>
-                    <p class="res-p">Dos de las pantallas (Transportes, Timeline y CDM &gt; CDR) rotan en un <strong>carrusel automático</strong> (cada 6 segundos); las pantallas de <strong>Puertas</strong> son fijas por puerta y van en monitores verticales. En esta etapa la información es simulada/manual; el objetivo siguiente es conectarla progresivamente a los sistemas fuente (Ubictum Delivery y SAP EWM).</p>
-                </div>
-
-                <!-- 2. 3 pantallas en 3 zonas -->
-                <div class="res-section">
-                    <div class="res-head"><div class="res-num">2</div><h3>Concepto: pantallas por zona</h3></div>
-                    <p class="res-p">Cada zona muestra el tablero orientado a su audiencia. Embarques (Transportes) y Puertas operan en modo fijo; las zonas de Facilitadores y Líderes ejecutan el carrusel automático. Las pantallas de <strong>Puertas</strong> y <strong>Transportes</strong> se proyectan en monitores verticales.</p>
-                    <div class="zonas-grid">
-                        <div class="zona-card zc-teal">
-                            <div class="zc-top"><div class="zc-zona">Embarques</div><div class="zc-pantalla">Embarques / Transportes</div></div>
-                            <div class="zc-body"><span class="zc-modo fijo">Fijo · Vertical</span><div class="zc-prop">Operación de andenes: estatus de cada TU y cumplimiento de salidas.</div></div>
-                        </div>
-                        <div class="zona-card zc-blue">
-                            <div class="zc-top"><div class="zc-zona">Puertas</div><div class="zc-pantalla">Embarques / Puertas</div></div>
-                            <div class="zc-body"><span class="zc-modo fijo">Fijo por puerta · Vertical</span><div class="zc-prop">Pantalla por puerta: destino, objetivo, TU y avance de HU's (consolidadas / embarcadas) por RFID.</div></div>
-                        </div>
-                        <div class="zona-card zc-purple">
-                            <div class="zc-top"><div class="zc-zona">Facilitadores</div><div class="zc-pantalla">Embarques / Timeline</div></div>
-                            <div class="zc-body"><span class="zc-modo carrusel">Carrusel automático</span><div class="zc-prop">Coordinación de carga: tiempos por CDR contra ventana objetivo (estilo aeropuerto).</div></div>
-                        </div>
-                        <div class="zona-card zc-blue">
-                            <div class="zc-top"><div class="zc-zona">Líderes</div><div class="zc-pantalla">Embarques / CDM &gt; CDR</div></div>
-                            <div class="zc-body"><span class="zc-modo carrusel">Carrusel automático</span><div class="zc-prop">Gerencia: matriz de KPIs de calidad y salidas por destino (semáforo).</div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Mapeo por pantalla -->
-                <div class="res-section">
-                    <div class="res-head"><div class="res-num">3</div><h3>Detalle de cada pantalla y su mapeo de datos</h3></div>
-                    <p class="res-p">Para cada pantalla se indica el campo, su origen (fila DATA) y la descripción/KPI asociado.</p>
-
-                    <div class="res-map-title">3.1 Embarques / Transportes</div>
-                    <p class="res-map-desc">Vista fija para la zona de andenes. Muestra los KPIs de viajes (programados, pendientes, salidas) y una tabla por TU con estatus y cumplimiento de la salida objetivo.</p>
-                    <table class="res-table">
-                        <tr><th>Campo</th><th>Origen (DATA)</th><th>KPI / Descripción</th></tr>
-                        <tr><td class="c-campo">Andén</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Posición de andén asignada a la TU</td></tr>
-                        <tr><td class="c-campo">TU</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Identificador de la unidad de transporte</td></tr>
-                        <tr><td class="c-campo">Destino</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">CDR / plaza de destino</td></tr>
-                        <tr><td class="c-campo">Origen</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">CEDIS de origen (Ubictum / Ubictum II)</td></tr>
-                        <tr><td class="c-campo">Estatus</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Estado del embarque (Salida, Doc recibida, etc.)</td></tr>
-                        <tr><td class="c-campo">Salida Obj.</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Hora objetivo de salida</td></tr>
-                        <tr><td class="c-campo">Estatus Salida</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Cumplimiento de la salida (a tiempo / tarde)</td></tr>
-                    </table>
-
-                    <div class="res-map-title">3.2 Embarques / Puertas</div>
-                    <p class="res-map-desc">Pantalla vertical fija por puerta. Muestra puerta, destino, objetivo de embarque, TU y el avance de HU's (consolidadas y embarcadas), que se llenan en tiempo real conforme se confirman por RFID. Toda la información proviene de SAP EWM.</p>
-                    <table class="res-table">
-                        <tr><th>Campo</th><th>Origen (DATA)</th><th>KPI / Descripción</th></tr>
-                        <tr><td class="c-campo">Puerta</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Número de puerta / andén</td></tr>
-                        <tr><td class="c-campo">Destino</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">CDR / plaza de destino</td></tr>
-                        <tr><td class="c-campo">Objetivo Embarque</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Hora objetivo de embarque (base del conteo regresivo)</td></tr>
-                        <tr><td class="c-campo">TU</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Identificador de la unidad de transporte</td></tr>
-                        <tr><td class="c-campo">HU's Consolidadas</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Pendientes / Total y % de avance — se llena por confirmación RFID</td></tr>
-                        <tr><td class="c-campo">HU's Embarcadas</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Pendientes / Total y % de avance — se llena por confirmación RFID</td></tr>
-                    </table>
-
-                    <div class="res-map-title">3.3 Embarques / Timeline</div>
-                    <p class="res-map-desc">Monitoreo de tiempos por CDR en tarjetas compactas. Cada CDR muestra arribo, inicio/fin de carga, tiempo de carga calculado, documentos y salida, con un estatus tipo aeropuerto que compara la salida contra la ventana objetivo (A TIEMPO / EN RIESGO / RETRASADO / EN PROCESO / PROGRAMADO). Las 14 tarjetas se muestran completas, sin barra de desplazamiento.</p>
-                    <table class="res-table">
-                        <tr><th>Campo</th><th>Origen (DATA)</th><th>KPI / Descripción</th></tr>
-                        <tr><td class="c-campo">CDR</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Centro de distribución (los 13–14 CDR, sin CDM)</td></tr>
-                        <tr><td class="c-campo">TU</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Identificador de la unidad de transporte</td></tr>
-                        <tr><td class="c-campo">Arribo de unidad a CDR</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Hora de arribo de la unidad</td></tr>
-                        <tr><td class="c-campo">Inicio de Carga</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Hora de inicio de carga</td></tr>
-                        <tr><td class="c-campo">Fin de Carga</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Hora de fin de carga</td></tr>
-                        <tr><td class="c-campo">Tiempo de Carga</td><td><span class="src-badge src-calc">Cálculo</span></td><td class="c-desc">Fin − Inicio (minutos), calculado en el tablero</td></tr>
-                        <tr><td class="c-campo">Documentos</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Hora de liberación de documentos</td></tr>
-                        <tr><td class="c-campo">Salida</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Hora de salida real</td></tr>
-                    </table>
-
-                    <div class="res-map-title">3.4 Embarques / CDM &gt; CDR</div>
-                    <p class="res-map-desc">Matriz de calidad y salidas (DBR) por destino. Cada actividad muestra su % con icono de semáforo y el tiempo que tardó (en horas). <strong>Base de cálculo:</strong> Surtido CDM y Consolidado se calculan sobre el total de piezas surtidas (la merma de cada proceso baja el %); Embarque TU y Backlog se calculan sobre las piezas ya consolidadas. La primera fila (CDM) funciona como total: suma las TU y las horas de los CDR y promedia sus porcentajes. Debajo se desglosa por nodo (México Norte, México Sur, Puebla, Bajío, Guadalajara, Morelia, Culiacán, La Paz, Chihuahua, Tijuana, Monterrey, Veracruz, Tuxtla, Mérida).</p>
-                    <table class="res-table">
-                        <tr><th>Campo</th><th>Origen (DATA)</th><th>KPI / Descripción</th></tr>
-                        <tr><td class="c-campo">CDM / Destino</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Identificador del nodo (CDM y CDR)</td></tr>
-                        <tr><td class="c-campo">TU</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Unidad(es) de transporte del destino; un destino puede tener de 1 a N TU. Incluye las piezas totales del destino</td></tr>
-                        <tr><td class="c-campo">Surtido CDM</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">% Fill rate (Obj. &gt; 99%) sobre el total de piezas surtidas + tiempo + piezas</td></tr>
-                        <tr><td class="c-campo">Consolidado</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">% Embalado a HU Master (Obj. &gt; 98%) sobre el total de piezas surtidas + tiempo + piezas</td></tr>
-                        <tr><td class="c-campo">Embarque TU</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">% Embarque a TU (Obj. 100%) sobre las piezas consolidadas + tiempo + piezas</td></tr>
-                        <tr><td class="c-campo">Backlog</td><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">% Stage Resguardo (Obj. 0% — lógica invertida) sobre las piezas consolidadas + piezas (sin tiempo)</td></tr>
-                        <tr><td class="c-campo">Salida CDR</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Atributo: ¿salió a tiempo? (palomita / tache)</td></tr>
-                        <tr><td class="c-campo">Tránsito TU</td><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Atributo: ¿llegó a tiempo? (palomita / tache)</td></tr>
-                    </table>
-                    <p class="res-p" style="font-size:12.5px; color:#555; margin-top:6px;"><strong>Ejemplo (México Norte):</strong> de 10,000 piezas surtidas → Surtido CDM 99% = 9,900 pzas; Consolidado 98% = 9,800 pzas; sobre esas 9,800 consolidadas → Embarque TU 92% = 9,016 pzas y Backlog 8% = 784 pzas.</p>
-                </div>
-
-                <!-- 4. Orígenes -->
-                <div class="res-section">
-                    <div class="res-head"><div class="res-num">4</div><h3>De dónde vienen los datos (orígenes)</h3></div>
-                    <div class="res-legend">
-                        <span class="src-badge src-ud">Ubictum Delivery</span>
-                        <span class="src-badge src-ewm">SAP EWM</span>
-                        <span class="src-badge src-calc">Cálculo</span>
-                    </div>
-                    <table class="res-table">
-                        <tr><th style="width:24%">Fuente</th><th>Qué aporta</th></tr>
-                        <tr><td><span class="src-badge src-ud">Ubictum Delivery</span></td><td class="c-desc">Fuente principal de la operación: datos de embarque, TU, tiempos del timeline por CDR, y los atributos de Salida CDR y Tránsito TU. Origen de la mayoría de los campos.</td></tr>
-                        <tr><td><span class="src-badge src-ewm">SAP EWM</span></td><td class="c-desc">Sistema de almacén: pantalla de Puertas (HU's por RFID) y, en CDM &gt; CDR, surtido, consolidado, embarque TU y backlog.</td></tr>
-                        <tr><td><span class="src-badge src-calc">Cálculo</span></td><td class="c-desc">Campos derivados dentro del tablero: tiempo de carga (Fin − Inicio) y el estatus tipo aeropuerto del timeline.</td></tr>
-                    </table>
-                    <p class="res-p" style="margin-top:12px;"><strong>Estado actual de la data y ruta de automatización:</strong> hoy la información se captura de forma manual/simulada para validar el tablero. La automatización se hará por fases, conforme se conecte cada fuente:</p>
-                    <ul class="res-list">
-                        <li>Llegadas a CDM y CDR.</li>
-                        <li>Surtido y consolidado directamente desde sistema (SAP EWM).</li>
-                        <li>Carga de la TU por frecuencia / lectura automática.</li>
-                        <li>Confirmación de HU's por RFID en la pantalla de Puertas.</li>
-                    </ul>
-                </div>
-
-                <!-- 5. Alcance -->
-                <div class="res-section">
-                    <div class="res-head"><div class="res-num">5</div><h3>Alcance del mockup y siguientes pasos</h3></div>
-                    <div class="res-two">
-                        <div class="res-box ok">
-                            <h4>✔ Qué incluye el mockup actual</h4>
-                            <ul class="res-list">
-                                <li>Archivo HTML autónomo (un solo archivo) que corre en cualquier navegador y se proyecta en monitor.</li>
-                                <li>Las 3 pantallas con su diseño final, simulador de zona, carrusel automático y pantalla de Arquitectura de Datos.</li>
-                                <li>Lógica funcional: semáforos por objetivo, estatus tipo aeropuerto, cálculo de tiempos y filtros.</li>
-                                <li>Datos de ejemplo para ilustrar cada estado (a tiempo, en riesgo, retrasado, etc.).</li>
-                            </ul>
-                        </div>
-                        <div class="res-box pend">
-                            <h4>◷ Qué falta para producción</h4>
-                            <ul class="res-list num">
-                                <li>Conexión a las fuentes (Ubictum Delivery y SAP EWM) y definición de la frecuencia de actualización.</li>
-                                <li>Hosting/despliegue en las pantallas de las zonas (incluyendo monitores verticales) y políticas de visualización.</li>
-                                <li>Validación de orígenes por campo con los responsables de cada sistema.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- ====================================================
-             VISTA 4: ARQUITECTURA DE DATOS (FUERA DEL CARRUSEL)
-             ==================================================== -->
-        <section id="vista-fuentes" class="view-section">
-            <div class="view-header-container">
-                <h2 class="view-title">Arquitectura y Mapeo de Origen de Datos (Data-Mapping)</h2>
-            </div>
-            <div class="fuentes-container">
-
-                <div class="arq-legend">
-                    <span>Origen del dato (DATA):</span>
-                    <span><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></span>
-                    <span><span class="arq-badge badge-ewm">SAP EWM</span></span>
-                </div>
-
-                <!-- Pantalla 1: Embarques / Transportes -->
-                <div class="arq-card">
-                    <h3>1. Embarques / Transportes</h3>
-                    <div class="arq-table-wrap">
-                        <table class="arq-table">
-                            <tr class="arq-row-data">
-                                <th class="arq-rowlabel">DATA</th>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                            </tr>
-                            <tr class="arq-row-campo">
-                                <th class="arq-rowlabel">Campo</th>
-                                <td>Andén</td>
-                                <td>TU</td>
-                                <td>Destino</td>
-                                <td>Origen</td>
-                                <td>Estatus</td>
-                                <td>Salida Obj.</td>
-                                <td>Estatus Salida</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Pantalla 2: Embarques / Puertas -->
-                <div class="arq-card">
-                    <h3>2. Embarques / Puertas</h3>
-                    <div class="arq-table-wrap">
-                        <table class="arq-table">
-                            <tr class="arq-row-data">
-                                <th class="arq-rowlabel">DATA</th>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                            </tr>
-                            <tr class="arq-row-campo">
-                                <th class="arq-rowlabel">Campo</th>
-                                <td>Puerta</td>
-                                <td>Destino</td>
-                                <td>Objetivo Embarque</td>
-                                <td>TU</td>
-                                <td>HU's Consolidadas</td>
-                                <td>HU's Embarcadas</td>
-                            </tr>
-                            <tr class="arq-row-kpi">
-                                <th class="arq-rowlabel">KPI</th>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>% / conteo por RFID</td>
-                                <td>% / conteo por RFID</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Pantalla 3: Embarques / Timeline -->
-                <div class="arq-card">
-                    <h3>3. Embarques / Timeline</h3>
-                    <div class="arq-table-wrap">
-                        <table class="arq-table">
-                            <tr class="arq-row-data">
-                                <th class="arq-rowlabel">DATA</th>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                            </tr>
-                            <tr class="arq-row-campo">
-                                <th class="arq-rowlabel">Campo</th>
-                                <td>CDR</td>
-                                <td>TU</td>
-                                <td>Arribo de unidad a CDR</td>
-                                <td>Inicio de Carga</td>
-                                <td>Fin de Carga</td>
-                                <td>Tiempo de Carga</td>
-                                <td>Documentos</td>
-                                <td>Salida</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Pantalla 4: Embarques / CDM > CDR -->
-                <div class="arq-card">
-                    <h3>4. Embarques / CDM &gt; CDR</h3>
-                    <div class="arq-table-wrap">
-                        <table class="arq-table">
-                            <tr class="arq-row-data">
-                                <th class="arq-rowlabel">DATA</th>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ewm">SAP EWM</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                                <td><span class="arq-badge badge-ud">UBICTUM DELIVERY</span></td>
-                            </tr>
-                            <tr class="arq-row-campo">
-                                <th class="arq-rowlabel">Campo</th>
-                                <td>CDM / Destino</td>
-                                <td>TU</td>
-                                <td>Surtido CDM</td>
-                                <td>Consolidado</td>
-                                <td>Embarque TU</td>
-                                <td>Backlog</td>
-                                <td>Salida CDR</td>
-                                <td>Tránsito TU</td>
-                            </tr>
-                            <tr class="arq-row-kpi">
-                                <th class="arq-rowlabel">KPI</th>
-                                <td>—</td>
-                                <td>1 a N TU + piezas del destino</td>
-                                <td>% Fill rate (sobre piezas surtidas) + tiempo + pzas</td>
-                                <td>% Embalado a HU Master (sobre piezas surtidas) + tiempo + pzas</td>
-                                <td>% Embarque TU (sobre piezas consolidadas) + tiempo + pzas</td>
-                                <td>% Stage Resguardo (sobre piezas consolidadas) + pzas</td>
-                                <td>¿Salió a tiempo? (sí / no)</td>
-                                <td>¿Llegó a tiempo? (sí / no)</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- ====================================================
-             VISTA EMBARQUES / PUERTAS (VERTICAL · FIJA POR PUERTA)
-             ==================================================== -->
-        <section id="vista-puertas" class="view-section">
-            <div class="view-header-container">
-                <h2 class="view-title">Puertas</h2>
-            </div>
-            <div class="puerta-wrap">
-                <div class="puerta-screen">
-                    <div class="pt-top">
-                        <div class="pt-clock" id="pt-clock">12:08</div>
-                        <div class="pt-logo">
-                            <div class="l1"><span style="color:var(--ubictum-teal)">U</span><span style="color:var(--ubictum-gray)">BICTUM</span></div>
-                            <div class="l2">LA PUERTA DE ENTRADA AL MERCADO</div>
-                        </div>
-                    </div>
-
-                    <div class="pt-id">
-                        <div>
-                            <span class="pt-label">PUERTA</span>
-                            <span class="pt-num">01</span>
-                        </div>
-                        <div class="pt-destino">
-                            <span class="pt-label">DESTINO</span>
-                            <span class="pt-dest">BAJ</span>
-                        </div>
-                    </div>
-
-                    <div class="pt-meta">
-                        <div>
-                            <span class="pt-label">OBJETIVO DE EMBARQUE</span>
-                            <span class="pt-val" id="pt-objetivo">14:00</span>
-                        </div>
-                        <div class="right">
-                            <span class="pt-label">TU :</span>
-                            <span class="pt-tu">2095513</span>
-                        </div>
-                    </div>
-
-                    <!-- HU'S CONSOLIDADAS -->
-                    <div class="pt-card">
-                        <div class="pt-bar">HU'S CONSOLIDADAS</div>
-                        <div class="pt-stats">
-                            <div><span class="lbl">AVANCE</span><span class="big avance" id="cons-avance">498</span></div>
-                            <div class="center"><span class="lbl">PENDIENTES</span><span class="big" id="cons-pend">2,462</span></div>
-                            <div class="right"><span class="lbl">TOTAL</span><span class="big" id="cons-total">2,960</span></div>
-                        </div>
-                        <div class="pt-gauge">
-                            <svg viewBox="0 0 140 140">
-                                <circle class="gauge-track" cx="70" cy="70" r="54" fill="none" stroke-width="13" stroke-linecap="round" transform="rotate(-90 70 70)"/>
-                                <circle class="gauge-prog" id="cons-arc" cx="70" cy="70" r="54" fill="none" stroke-width="13" stroke-linecap="round" transform="rotate(-90 70 70)"/>
-                            </svg>
-                            <div class="gauge-center">
-                                <div class="gauge-pct" id="cons-pct">17%</div>
-                                <div class="gauge-unit">consolidado</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- HU'S EMBARCADAS -->
-                    <div class="pt-card">
-                        <div class="pt-bar">HU'S EMBARCADAS</div>
-                        <div class="pt-stats">
-                            <div><span class="lbl">AVANCE</span><span class="big avance" id="emb-avance">0</span></div>
-                            <div class="center"><span class="lbl">PENDIENTES</span><span class="big" id="emb-pend">2,960</span></div>
-                            <div class="right"><span class="lbl">TOTAL</span><span class="big" id="emb-total">2,960</span></div>
-                        </div>
-                        <div class="pt-gauge">
-                            <svg viewBox="0 0 140 140">
-                                <circle class="gauge-track" cx="70" cy="70" r="54" fill="none" stroke-width="13" stroke-linecap="round" transform="rotate(-90 70 70)"/>
-                                <circle class="gauge-prog" id="emb-arc" cx="70" cy="70" r="54" fill="none" stroke-width="13" stroke-linecap="round" transform="rotate(-90 70 70)"/>
-                            </svg>
-                            <div class="gauge-center">
-                                <div class="gauge-pct" id="emb-pct">0%</div>
-                                <div class="gauge-unit">embarcado</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="pt-footer" id="pt-restan">Restan 1 h 53 min</div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <div class="footer-left">
-            <div class="controls" id="carousel-controls" style="display: none;">
-                <button onclick="cambiarVista(1)" id="btn-1" class="active-btn">1. Timeline</button>
-                <button onclick="cambiarVista(2)" id="btn-2">2. CDM &gt; CDR</button>
-                <button onclick="toggleAutoPlay()" id="btn-auto" style="background-color: var(--success-green); color: white; margin-left: 20px;">⏸ Pausar Carrusel</button>
-                <button id="btn-reiniciar" onclick="reiniciarSimulacion()" title="Reinicia la carga dinámica de datos" style="margin-left: 12px;">&#8635; Reiniciar datos</button>
-            </div>
+        <div class="field">
+          <label>Departamento</label>
+          <input type="text" id="departamento" required>
         </div>
-        <div class="status-indicator">
-            <span class="dot" style="animation: blink 1.5s infinite;"></span> Conexión Estable: SAP EWM | DB Operativa
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tipo de ausencia</h2>
+      <div class="opciones" id="tipo-ausencia">
+        <label class="opt"><input type="radio" name="tipo" value="Permiso con goce de sueldo"> Permiso con goce de sueldo</label>
+        <label class="opt"><input type="radio" name="tipo" value="Permiso sin goce de sueldo"> Permiso sin goce de sueldo</label>
+        <label class="opt"><input type="radio" name="tipo" value="Falta injustificada"> Falta injustificada</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Motivo de la ausencia</h2>
+
+      <div class="motivo-tabs" id="motivo-tabs">
+        <div class="motivo-tab active" data-panel="panel-permisos">Permisos otorgados por</div>
+        <div class="motivo-tab" data-panel="panel-incapacidades">Incapacidades por</div>
+        <div class="motivo-tab" data-panel="panel-otros">Otros por</div>
+      </div>
+
+      <!-- PERMISOS -->
+      <div class="motivo-panel active" id="panel-permisos" data-motivo="permisos">
+        <div class="opciones" id="permisos-por">
+          <label class="opt"><input type="radio" name="permiso" value="Defunción familiar"> Defunción familiar</label>
+          <label class="opt"><input type="radio" name="permiso" value="Alumbramiento esposa"> Alumbramiento esposa</label>
+          <label class="opt"><input type="radio" name="permiso" value="Vacaciones"> Vacaciones</label>
+          <label class="opt"><input type="radio" name="permiso" value="Otro"> Otro (especificar)</label>
         </div>
-    </footer>
+        <input type="text" id="permiso-otro-detalle" placeholder="Especificar motivo si es 'Otro'" style="margin:10px 0;">
+        <div class="grid g3">
+          <div class="field"><label>Del</label><input type="date" id="permiso-del"></div>
+          <div class="field"><label>Al</label><input type="date" id="permiso-al"></div>
+          <div class="field"><label>No. de días otorgados</label><input type="number" id="dias-otorgados" min="0"></div>
+        </div>
+        <div class="grid" style="margin-top:14px;">
+          <div class="field"><label>No. de días restantes</label><input type="number" id="dias-restantes" min="0"></div>
+          <div class="field"><label>Antigüedad / Periodo</label><input type="text" id="antiguedad-periodo"></div>
+        </div>
+      </div>
 
-    <script>
-        // ==========================================
-        // FACILITADORES: TIEMPO DE CARGA + ESTATUS AEROPUERTO
-        // ==========================================
-        function aMinutos(hhmm) {
-            const partes = hhmm.split(':').map(Number);
-            return (partes[0] * 60) + partes[1];
-        }
-        function aHHMM(min) {
-            min = ((min % 1440) + 1440) % 1440;
-            const h = Math.floor(min / 60), m = min % 60;
-            return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-        }
-        // Semáforo por minutos de desvío: 0 verde, 1-5 amarillo, 5-15 naranja, >15 rojo
-        function estatusPorDesvio(dev) {
-            if (dev <= 0) return 'green';
-            if (dev <= 5) return 'yellow';
-            if (dev <= 15) return 'orange';
-            return 'red';
-        }
-        // Iconos SVG
-        function icoStatus(st) {
-            if (st === 'green') return '<svg class="mx-ic" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#2ecc71"/><path d="M5.6 10.3l2.8 2.8 6-6.3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            if (st === 'yellow') return '<svg class="mx-ic" viewBox="0 0 20 20"><path d="M10 1.6 L18.9 17.6 L1.1 17.6 Z" fill="#f1c40f"/><rect x="9" y="6.8" width="2" height="5.4" rx="1" fill="#5a4b00"/><circle cx="10" cy="14.8" r="1.05" fill="#5a4b00"/></svg>';
-            if (st === 'orange') return '<svg class="mx-ic" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#e67e22"/><circle cx="10" cy="6.2" r="1.25" fill="#fff"/><rect x="9" y="8.4" width="2" height="6" rx="1" fill="#fff"/></svg>';
-            return '<svg class="mx-ic" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#e74c3c"/><circle cx="10" cy="6.2" r="1.25" fill="#fff"/><rect x="9" y="8.4" width="2" height="6" rx="1" fill="#fff"/></svg>';
-        }
-        function icoBool(ok) {
-            if (ok) return '<svg class="mx-ic" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#2ecc71"/><path d="M5.6 10.3l2.8 2.8 6-6.3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            return '<svg class="mx-ic" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#e74c3c"/><path d="M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>';
-        }
+      <!-- INCAPACIDADES -->
+      <div class="motivo-panel" id="panel-incapacidades" data-motivo="incapacidades">
+        <div class="opciones" id="incapacidades-por">
+          <label class="opt"><input type="radio" name="incapacidad" value="Enfermedad profesional"> Enfermedad profesional</label>
+          <label class="opt"><input type="radio" name="incapacidad" value="Enfermedad general"> Enfermedad general</label>
+          <label class="opt"><input type="radio" name="incapacidad" value="Accidente de trabajo"> Accidente de trabajo</label>
+          <label class="opt"><input type="radio" name="incapacidad" value="Maternidad"> Maternidad</label>
+        </div>
+        <div class="grid g3" style="margin-top:12px;">
+          <div class="field"><label>Del</label><input type="date" id="incapacidad-del"></div>
+          <div class="field"><label>Al</label><input type="date" id="incapacidad-al"></div>
+          <div class="field"><label>No. de incapacidad</label><input type="text" id="incapacidad-numero"></div>
+        </div>
+        <div class="grid" style="margin-top:14px;">
+          <div class="field"><label>No. de días de incapacidad</label><input type="number" id="incapacidad-dias" min="0"></div>
+        </div>
+      </div>
 
-        // ==========================================
-        // TU's POR DESTINO (compartido entre Timeline y CDM > CDR)
-        // Un destino puede tener de 1 a N TU; rotan tipo tablero digital cada 3 s
-        // ==========================================
-        const TU_POR_CDR = {
-            "MEXICO SUR":   ["39899","39900","39901","39902"],
-            "PUEBLA":       ["39866","39867"],
-            "MORELIA":      ["39909"],
-            "CHIHUAHUA":    ["39912","39913","39914"],
-            "MEXICO NORTE": ["39907","39908","39910","39911","39916","39917"],
-            "TIJUANA":      ["39915","39918"],
-            "LA PAZ":       ["39920"],
-            "MONTERREY":    ["39821","39822","39823","39903","39904"],
-            "MERIDA":       ["39930","39931"],
-            "TUXTLA":       ["39824","39827","39828"],
-            "VERACRUZ":     ["39825","39826"],
-            "CULIACAN":     ["39935","39936","39937"],
-            "BAJIO":        ["39940","39941","39942","39943"],
-            "GUADALAJARA":  ["39945","39946"]
-        };
-        // Equivalencia de nombres entre pantallas (CDM > CDR usa NORTE / SUR)
-        const ALIAS_CDR = { "NORTE": "MEXICO NORTE", "SUR": "MEXICO SUR" };
-        function tusDe(nombre) {
-            if (nombre === 'CDM') { // el CDM concentra todas las TU
-                return Object.values(TU_POR_CDR).reduce((a,b) => a.concat(b), []);
-            }
-            return TU_POR_CDR[ALIAS_CDR[nombre] || nombre] || [];
-        }
-        let tuIdx = 0; // índice global: ambas pantallas muestran la misma TU por destino
-        function rotarTU() {
-            tuIdx++;
-            pintarTU();
-        }
-        function tuActual(nombre) {
-            const lista = tusDe(nombre);
-            if (!lista.length) return { tu: '—', pos: 0, total: 0 };
-            const i = tuIdx % lista.length;
-            return { tu: lista[i], pos: i + 1, total: lista.length };
-        }
-        function pintarTU() {
-            // CDM > CDR (Timeline ya no usa TU rotativa; muestra un registro por TU)
-            document.querySelectorAll('#matrizDbr tbody tr').forEach(fila => {
-                const info = tuActual(fila.dataset.dest);
-                const span = fila.querySelector('.tu-roll');
-                if (span && span.innerText !== info.tu) {
-                    span.innerText = info.tu;
-                    span.classList.remove('tu-flip'); void span.offsetWidth; span.classList.add('tu-flip');
-                }
-                const cnt = fila.querySelector('.tu-count');
-                if (cnt) {
-                    const dd = cdmDatos[fila.dataset.dest];
-                    cnt.innerText = info.pos + '/' + info.total + ((dd && dd.pzas) ? ('  -  ' + dd.pzas.toLocaleString('en-US') + ' pzas') : '');
-                }
-            });
-        }
+      <!-- OTROS -->
+      <div class="motivo-panel" id="panel-otros" data-motivo="otros">
+        <label class="subtitulo">Especificar motivo</label>
+        <input type="text" id="otros-detalle" placeholder="Descripción del motivo" style="margin-bottom:12px;">
+        <div class="grid g3">
+          <div class="field"><label>Del</label><input type="date" id="otros-del"></div>
+          <div class="field"><label>Al</label><input type="date" id="otros-al"></div>
+          <div class="field"><label>No. de días</label><input type="number" id="otros-dias" min="0"></div>
+        </div>
+      </div>
 
+      <div class="field" style="margin-top:16px;">
+        <label>Observaciones</label>
+        <textarea id="observaciones"></textarea>
+      </div>
+    </div>
 
-        // ==========================================
-        // TIMELINE: registro por TU, agrupado por CDR, con paginación
-        // ==========================================
-        // Objetivos por CDR (arribo, inicio, fin, doc, salida) — no se muestran como dato de TU
-        const tlObjetivos = {
-            "MEXICO NORTE": {arribo:"01:00", inicio:"01:50", fin:"04:20", doc:"05:20", salida:"06:00"},
-            "MEXICO SUR":   {arribo:"00:00", inicio:"00:50", fin:"03:20", doc:"04:20", salida:"05:00"},
-            "PUEBLA":       {arribo:"00:00", inicio:"00:50", fin:"03:20", doc:"04:20", salida:"05:00"},
-            "BAJIO":        {arribo:"10:00", inicio:"10:50", fin:"13:20", doc:"14:20", salida:"15:00"},
-            "GUADALAJARA":  {arribo:"10:00", inicio:"10:50", fin:"13:20", doc:"14:20", salida:"15:00"},
-            "MORELIA":      {arribo:"00:00", inicio:"00:50", fin:"03:20", doc:"04:20", salida:"05:30"},
-            "CULIACAN":     {arribo:"08:00", inicio:"08:50", fin:"11:20", doc:"12:20", salida:"13:00"},
-            "LA PAZ":       {arribo:"05:00", inicio:"05:50", fin:"08:20", doc:"09:20", salida:"10:00"},
-            "CHIHUAHUA":    {arribo:"01:00", inicio:"01:50", fin:"04:20", doc:"05:20", salida:"06:00"},
-            "TIJUANA":      {arribo:"01:00", inicio:"01:50", fin:"04:20", doc:"05:20", salida:"06:00"},
-            "MONTERREY":    {arribo:"05:00", inicio:"05:50", fin:"08:20", doc:"09:20", salida:"10:00"},
-            "VERACRUZ":     {arribo:"06:00", inicio:"06:50", fin:"09:20", doc:"10:20", salida:"11:00"},
-            "TUXTLA":       {arribo:"06:00", inicio:"06:50", fin:"09:20", doc:"10:20", salida:"11:00"},
-            "MERIDA":       {arribo:"06:00", inicio:"06:50", fin:"09:20", doc:"10:20", salida:"11:00"}
-        };
-        // Desvíos base por CDR (min) [arribo,inicio,fin,doc,salida]
-        const tlDev = {
-            "MEXICO NORTE":[0,0,8,12,25], "MEXICO SUR":[0,0,0,0,0], "PUEBLA":[0,0,0,0,0],
-            "BAJIO":[0,0,0,0,0], "GUADALAJARA":[0,0,2,0,0], "MORELIA":[0,0,0,0,0],
-            "CULIACAN":[0,0,0,0,0], "LA PAZ":[0,2,0,0,0], "CHIHUAHUA":[0,0,3,0,0],
-            "TIJUANA":[0,0,0,8,4], "MONTERREY":[0,0,0,0,0], "VERACRUZ":[0,0,6,18,20],
-            "TUXTLA":[0,0,0,0,0], "MERIDA":[0,0,0,0,0]
-        };
-        const tlOrden = ["MEXICO NORTE","MEXICO SUR","PUEBLA","BAJIO","GUADALAJARA","MORELIA","CULIACAN","LA PAZ","CHIHUAHUA","TIJUANA","MONTERREY","VERACRUZ","TUXTLA","MERIDA"];
+    <div class="card">
+      <h2>Firmas</h2>
+      <div class="firmas">
+        <div class="firma-box">
+          <canvas id="firma-solicito"></canvas>
+          <p>Solicitó (Empleado)</p>
+          <button type="button" data-clear="firma-solicito">Borrar</button>
+          <input type="text" id="nombre-solicito" placeholder="Nombre del empleado" style="margin-top:8px;">
+        </div>
+        <div class="firma-box">
+          <canvas id="firma-reviso"></canvas>
+          <p>Revisó (Jefe inmediato)</p>
+          <button type="button" data-clear="firma-reviso">Borrar</button>
+          <input type="text" id="nombre-reviso" placeholder="Nombre del jefe inmediato" style="margin-top:8px;">
+        </div>
+      </div>
+    </div>
 
-        // Icono según punto 4: actividades intermedias -> verde/amarillo; Salida -> verde/rojo
-        function icoActividad(dev, esSalida) {
-            if (dev <= 0) return icoStatus('green');
-            return esSalida ? icoStatus('red') : icoStatus('yellow');
-        }
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" id="btn-limpiar">Limpiar formulario</button>
+      <button type="submit" class="btn btn-primary" id="btn-generar">Generar PDF</button>
+    </div>
+    <div class="status" id="status"></div>
+  </form>
+</div>
 
-        // Construir registros por TU (con jitter en el arribo para variar por TU)
-        function generarGrupos() {
-            const jitterArribo = [0, 10, 30, 0, 5, 15, 0, 20, 0, 8];
-            return tlOrden.map(cdr => {
-                const obj = tlObjetivos[cdr];
-                const base = tlDev[cdr] || [0,0,0,0,0];
-                const tus = tusDe(cdr);
-                const filas = tus.map((tu, j) => {
-                    const dArr = base[0] + jitterArribo[j % jitterArribo.length];
-                    const dev = [dArr, base[1], base[2], base[3], base[4]];
-                    const tArr = aMinutos(obj.arribo)+dev[0];
-                    const tIni = aMinutos(obj.inicio)+dev[1];
-                    const tFin = aMinutos(obj.fin)+dev[2];
-                    const tDoc = aMinutos(obj.doc)+dev[3];
-                    const tSal = aMinutos(obj.salida)+dev[4];
-                    return {
-                        tu, prog: 0,   // prog: nº de actividades reveladas (0..5) — llenado dinámico
-                        arribo:{v:aHHMM(tArr), dev:dev[0]},
-                        inicio:{v:aHHMM(tIni), dev:dev[1]},
-                        fin:{v:aHHMM(tFin), dev:dev[2]},
-                        tiempo:(tFin - tIni),
-                        doc:{v:aHHMM(tDoc), dev:dev[3]},
-                        salida:{v:aHHMM(tSal), dev:dev[4]}
-                    };
-                });
-                return { cdr, obj, tus: filas };
-            });
-        }
+<script>
+document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
 
-        let tlGrupos = [];
-        let tlPaginas = [];
-        let tlPag = 0;
-        let tlTimer = null, tlFillTimer = null;
-        const TL_BUDGET = 15; // filas visibles por página (encabezado de grupo + TUs)
+// Tabs de motivo: Permisos / Incapacidades / Otros (mutuamente excluyentes)
+document.querySelectorAll('.motivo-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.motivo-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.motivo-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.panel).classList.add('active');
+  });
+});
 
-        // Paginación que NO corta un CDR: si el grupo no cabe completo, va a la página siguiente.
-        // Si un grupo es más grande que el presupuesto, se parte pero repitiendo su cabecera.
-        function construirPaginas() {
-            if (!tlGrupos.length) tlGrupos = generarGrupos();
-            tlPaginas = [];
-            let pag = [], filas = 0;
-            tlGrupos.forEach(g => {
-                const n = 1 + g.tus.length;
-                if (n <= TL_BUDGET) {
-                    if (filas + n > TL_BUDGET && pag.length) { tlPaginas.push(pag); pag = []; filas = 0; }
-                    pag.push({ cdr:g.cdr, obj:g.obj, ref:g, tus:g.tus });
-                    filas += n;
-                } else {
-                    // grupo enorme: partir en trozos, cada trozo con su cabecera
-                    let idx = 0;
-                    while (idx < g.tus.length) {
-                        if (filas + 2 > TL_BUDGET && pag.length) { tlPaginas.push(pag); pag = []; filas = 0; }
-                        const cabe = Math.max(1, (TL_BUDGET - filas) - 1);
-                        const trozo = g.tus.slice(idx, idx + cabe);
-                        pag.push({ cdr:g.cdr, obj:g.obj, ref:g, tus:trozo });
-                        filas += 1 + trozo.length; idx += trozo.length;
-                        if (filas >= TL_BUDGET) { tlPaginas.push(pag); pag = []; filas = 0; }
-                    }
-                }
-            });
-            if (pag.length) tlPaginas.push(pag);
-            if (tlPag >= tlPaginas.length) tlPag = 0;
-        }
+// Radio "checked" visual state
+document.querySelectorAll('.opt input[type=radio]').forEach(inp=>{
+  inp.addEventListener('change', ()=>{
+    document.querySelectorAll(`input[name="${inp.name}"]`).forEach(i=>{
+      i.closest('.opt').classList.toggle('checked', i.checked);
+    });
+  });
+});
 
-        // Estatus de la TU según su avance (prog) y desvíos
-        function estatusTU(f) {
-            if (f.prog === 0) return { txt:'PROGRAMADO', cls:'est-programado' };
-            if (f.prog >= 5) { // salida ya cargada
-                return f.salida.dev <= 0 ? { txt:'A TIEMPO', cls:'est-tiempo' } : { txt:'RETRASADO', cls:'est-retrasado' };
-            }
-            // en curso (arribo..documentos): si alguna actividad revelada no cumple -> EN RIESGO, si no EN PROCESO
-            const devs = [f.arribo.dev, f.inicio.dev, f.fin.dev, f.doc.dev];
-            let riesgo = false;
-            for (let k=0;k<f.prog;k++) if (devs[k] > 0) riesgo = true;
-            return riesgo ? { txt:'EN RIESGO', cls:'est-riesgo' } : { txt:'EN PROCESO', cls:'est-proceso' };
-        }
+// Signature pads
+function initPad(canvasId){
+  const canvas = document.getElementById(canvasId);
+  function resize(){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext('2d').scale(ratio, ratio);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  return new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)', penColor:'#161514' });
+}
+const pads = {
+  'firma-solicito': initPad('firma-solicito'),
+  'firma-reviso': initPad('firma-reviso'),
+};
+document.querySelectorAll('[data-clear]').forEach(btn=>{
+  btn.addEventListener('click', ()=> pads[btn.dataset.clear].clear());
+});
 
-        function celTiempo(f, act, ai, esSalida) {
-            if (ai >= f.prog) return '<td><span class="tl-empty">—</span></td>';
-            return '<td><span class="tl-cellval"><span class="tl-time">'+f[act].v+'</span>'
-                 + '<span class="tl-ic">'+icoActividad(f[act].dev, esSalida)+'</span></span></td>';
-        }
+document.getElementById('btn-limpiar').addEventListener('click', ()=>{
+  document.getElementById('form-ausencia').reset();
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('checked'));
+  document.querySelectorAll('.motivo-tab').forEach((t,i)=>t.classList.toggle('active', i===0));
+  document.querySelectorAll('.motivo-panel').forEach((p,i)=>p.classList.toggle('active', i===0));
+  Object.values(pads).forEach(p=>p.clear());
+  document.getElementById('status').textContent='';
+});
 
-        function pintarTimeline() {
-            const tbody = document.getElementById('tl-body');
-            if (!tbody) return;
-            if (!tlPaginas.length) construirPaginas();
-            const pag = tlPaginas[tlPag] || [];
-            let html = '';
-            pag.forEach(bloque => {
-                const o = bloque.obj;
-                html += '<tr class="tl-group">'
-                    + '<td class="tl-estcol tl-cdrname">'+bloque.cdr+'</td>'
-                    + '<td class="tl-cdr"><span class="tl-objtag">Obj.</span><span class="tl-tucount">TU\'s<span class="tl-tunum">'+bloque.ref.tus.length+'</span></span></td>'
-                    + '<td class="tl-objh">'+o.arribo+'<span class="tl-colh">Arribo Unidad</span></td>'
-                    + '<td class="tl-objh">'+o.inicio+'<span class="tl-colh">Inicio Carga</span></td>'
-                    + '<td class="tl-objh">'+o.fin+'<span class="tl-colh">Fin Carga</span></td>'
-                    + '<td class="tl-objh"><span class="tl-colh" style="margin-top:0">Tiempo Carga</span></td>'
-                    + '<td class="tl-objh">'+o.doc+'<span class="tl-colh">Documentos</span></td>'
-                    + '<td class="tl-objh">'+o.salida+'<span class="tl-colh">Salida</span></td>'
-                    + '</tr>';
-                bloque.tus.forEach(f => {
-                    const est = estatusTU(f);
-                    const tiempo = (f.prog > 2) ? (f.tiempo + ' min') : '<span class="tl-empty">—</span>';
-                    html += '<tr class="tl-row">'
-                        + '<td class="tl-estcol"><span class="tl-est '+est.cls+'">'+est.txt+'</span></td>'
-                        + '<td class="tl-tu">'+f.tu+'</td>'
-                        + celTiempo(f,'arribo',0,false) + celTiempo(f,'inicio',1,false) + celTiempo(f,'fin',2,false)
-                        + '<td class="tl-tiempo">'+tiempo+'</td>'
-                        + celTiempo(f,'doc',3,false) + celTiempo(f,'salida',4,true)
-                        + '</tr>';
-                });
-            });
-            tbody.innerHTML = html;
-            const info = document.getElementById('tl-page-info');
-            if (info) info.innerText = 'Página ' + (tlPag+1) + ' / ' + tlPaginas.length;
-        }
+document.getElementById('form-ausencia').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const status = document.getElementById('status');
 
-        // Llenado dinámico: cada tick revela una actividad más en las TU (escalonado)
-        function avanzarLlenado() {
-            let algo = false;
-            tlGrupos.forEach((g, gi) => {
-                g.tus.forEach((f, j) => {
-                    // arranque escalonado por grupo y por TU
-                    const arranque = gi + Math.floor(j/2);
-                    if (tlFillTick > arranque && f.prog < 5) { f.prog++; algo = true; }
-                });
-            });
-            tlFillTick++;
-            pintarTimeline();
-            if (!algo && tlGrupos.every(g => g.tus.every(f => f.prog >= 5))) {
-                clearInterval(tlFillTimer); tlFillTimer = null; // se detiene al completar
-            }
-        }
-        let tlFillTick = 0;
-        function iniciarLlenado() {
-            tlFillTick = 0;
-            tlGrupos.forEach(g => g.tus.forEach(f => f.prog = 0));
-            construirPaginas(); pintarTimeline();
-            if (tlFillTimer) clearInterval(tlFillTimer);
-            tlFillTimer = setInterval(avanzarLlenado, 1500); // revela info cada 1.5 s
-        }
+  if (pads['firma-solicito'].isEmpty()) {
+    status.textContent = 'Falta la firma de "Solicitó".';
+    status.className = 'status';
+    return;
+  }
 
-        function programarTimeline() {
-            if (tlTimer) clearInterval(tlTimer);
-            tlTimer = setInterval(() => { tlPag = (tlPag+1) % tlPaginas.length; pintarTimeline(); }, 10000);
-        }
-        function tlNextPage() { tlPag = (tlPag+1) % tlPaginas.length; pintarTimeline(); programarTimeline(); }
-        function tlPrevPage() { tlPag = (tlPag-1+tlPaginas.length) % tlPaginas.length; pintarTimeline(); programarTimeline(); }
+  status.textContent = 'Generando PDF…';
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'letter' });
+  const PAGE_W = doc.internal.pageSize.getWidth();
+  const M = 48; let y = 0;
 
-        // ==========================================
-        // MOTOR CDM > CDR (iconos + % + tiempo, atributos, dinámico)
-        // ==========================================
-        const cdmDatos = {
-            "MEXICO NORTE":{s:99,c:98,e:92,r:8,n:false,t:false, pzas:10000, hrs:{surtido:3.5, consolidado:2.5, embarque:2.5}},
-            "MEXICO SUR":{s:100,c:100,e:100,r:0,n:true,t:true}, "PUEBLA":{s:98,c:97,e:96,r:4,n:true,t:true},
-            "BAJIO":{s:99,c:99,e:98,r:2,n:true,t:true},  "GUADALAJARA":{s:97,c:95,e:94,r:6,n:true,t:true},
-            "MORELIA":{s:99,c:99,e:98,r:2,n:true,t:true},"CULIACAN":{s:100,c:100,e:100,r:0,n:true,t:true},
-            "LA PAZ":{s:92,c:90,e:87,r:13,n:false,t:false},"CHIHUAHUA":{s:93,c:92,e:90,r:10,n:true,t:false},
-            "TIJUANA":{s:99,c:98,e:98,r:2,n:true,t:true},"MONTERREY":{s:99,c:98,e:98,r:2,n:true,t:true},
-            "VERACRUZ":{s:91,c:90,e:88,r:12,n:false,t:true},"TUXTLA":{s:99,c:98,e:98,r:2,n:true,t:true},
-            "MERIDA":{s:99,c:98,e:97,r:3,n:true,t:true}
-        };
-        // CDM = sumatoria/promedio de todos los CDR (Salida CDR y Tránsito TU no aplican: son por CDR)
-        (function calcularCDM(){
-            const keys = Object.keys(cdmDatos);
-            const prom = k => Math.round(keys.reduce((a,d)=>a+cdmDatos[d][k],0) / keys.length);
-            cdmDatos["CDM"] = { s:prom('s'), c:prom('c'), e:prom('e'), r:prom('r'), n:null, t:null };
-        })();
-        const cdmCols = ['surtido','consolidado','embarque','salida','notificacion','transito'];
-        const metasPct = { surtido:99, consolidado:98, embarque:100 };
-        let cdmProg = new Array(15).fill(0);
-        let cdmTick = 0;
-        let cdmDone = false;
+  const val = id => document.getElementById(id).value || '—';
+  const radioVal = name => (document.querySelector(`input[name="${name}"]:checked`)||{}).value || '—';
 
-        function statusPct(col, val) {
-            if (col === 'salida') { // % Stage Resguardo, 0 óptimo (invertido)
-                if (val === 0) return 'green';
-                if (val <= 5) return 'yellow';
-                if (val <= 10) return 'orange';
-                return 'red';
-            }
-            const m = metasPct[col];
-            if (val >= m) return 'green';
-            if (val >= m - 5) return 'yellow';
-            if (val >= m - 10) return 'orange';
-            return 'red';
-        }
-        function fmtHoras(h) {
-            return (Number.isInteger(h) ? h : h.toFixed(1)) + 'h';
-        }
-        function durCol(col, i) {
-            const base = { surtido:2, consolidado:3, embarque:1, salida:0.5 }[col];
-            const pasos = { surtido:6, consolidado:8, embarque:5, salida:4 }[col]; // en medios
-            const extra = ((i * 3) % pasos) * 0.5;
-            return base + extra;
-        }
+  const TEAL = [84,164,179];
+  const GRIS = [99,100,105];
+  const INK  = [20,20,20];
 
-        // Horas de la fila CDM = sumatoria de las horas de todos los CDR de abajo
-        function horasDe(col, i, dest) {
-            if (dest === 'CDM') {
-                let suma = 0;
-                for (let k = 1; k <= 14; k++) suma += horasDe(col, k, null);
-                return suma;
-            }
-            const d = cdmDatos[dest];
-            if (d && d.hrs && d.hrs[col] !== undefined) return d.hrs[col];
-            return durCol(col, i);
-        }
-        // Piezas por actividad: Surtido y Consolidado sobre el total surtido;
-        // Embarque TU y Backlog sobre lo Consolidado.
-        function piezasDe(d, col) {
-            if (!d || !d.pzas) return null;
-            const consolidadas = Math.round(d.pzas * d.c / 100);
-            if (col === 'surtido')     return Math.round(d.pzas * d.s / 100);
-            if (col === 'consolidado') return consolidadas;
-            if (col === 'embarque')    return Math.round(consolidadas * d.e / 100);
-            if (col === 'salida')      return Math.round(consolidadas * d.r / 100);
-            return null;
-        }
-        function fmtNum(n) { return n.toLocaleString('en-US'); }
+  // Encabezado de marca
+  doc.setFillColor(...TEAL);
+  doc.rect(0, 0, PAGE_W, 76, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(22);
+  doc.text('UBICTUM', M, 36);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.setCharSpace(1.1);
+  doc.text('LA PUERTA DE ENTRADA AL MERCADO', M, 50);
+  doc.setCharSpace(0);
 
-        function pintarCDM() {
-            const filas = document.querySelectorAll('#matrizDbr tbody tr');
-            filas.forEach((fila, i) => {
-                const dest = fila.dataset.dest;
-                const d = cdmDatos[dest];
-                const prog = cdmProg[i];
-                cdmCols.forEach((col, ci) => {
-                    const celda = fila.querySelector('td[data-col="'+col+'"]');
-                    if (!celda) return;
-                    if (ci >= prog || !d) { celda.innerHTML = '<span class="mx-empty">—</span>'; return; }
-                    if (col === 'notificacion') {
-                        celda.innerHTML = (d.n === null) ? '<span class="mx-empty">—</span>' : '<span class="mx-cell attr">'+icoBool(d.n)+'</span>';
-                    } else if (col === 'transito') {
-                        celda.innerHTML = (d.t === null) ? '<span class="mx-empty">—</span>' : '<span class="mx-cell attr">'+icoBool(d.t)+'</span>';
-                    } else {
-                        const val = col==='surtido'?d.s : col==='consolidado'?d.c : col==='embarque'?d.e : d.r;
-                        const st = statusPct(col, val);
-                        let html = '<span class="mx-cell">'+icoStatus(st)+'<span class="mx-val">'+Math.round(val)+'%</span>';
-                        if (col !== 'salida') html += '<span class="mx-time">'+fmtHoras(horasDe(col,i,dest))+'</span>'; // Backlog sin horas
-                        const pz = piezasDe(d, col);
-                        if (pz !== null) html += '<span class="mx-pzas">- '+fmtNum(pz)+' pzas</span>';
-                        html += '</span>';
-                        celda.innerHTML = html;
-                    }
-                });
-            });
-        }
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('REPORTE DE AUSENCIA', PAGE_W-M, 36, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.text(`FO-UB-181  ·  ${document.getElementById('fecha-actual').textContent}`, PAGE_W-M, 50, {align:'right'});
 
-        function avanzarCDM() {
-            if (cdmDone) return;
-            cdmTick++;
-            for (let i=0;i<15;i++) cdmProg[i] = Math.max(0, Math.min(6, cdmTick - Math.floor(i/2)));
-            if (cdmProg.every(pr => pr >= 6)) cdmDone = true;
-            pintarCDM();
-        }
+  y = 108;
 
-        // Reinicia el bucle de datos dinámicos (Timeline vuelve a llenarse + CDM > CDR)
-        function reiniciarSimulacion() {
-            tlPag = 0; iniciarLlenado(); programarTimeline();
-            cdmTick = 0; cdmProg.fill(0); cdmDone = false; pintarCDM();
-        }
+  const sectionTitle = (t)=>{
+    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.setCharSpace(0.6);
+    doc.text(t.toUpperCase(), M, y); doc.setCharSpace(0);
+    y += 6;
+    doc.setDrawColor(...TEAL); doc.setLineWidth(1);
+    doc.line(M, y, PAGE_W-M, y);
+    y += 18;
+  };
+  const sectionTitleAt = (yPos, t)=>{
+    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.setCharSpace(0.6);
+    doc.text(t.toUpperCase(), M, yPos); doc.setCharSpace(0);
+    doc.setDrawColor(...TEAL); doc.setLineWidth(1);
+    doc.line(M, yPos+6, PAGE_W-M, yPos+6);
+  };
 
-        // ==========================================
-        // MOTOR ZONAS / CARRUSEL
-        // (Arquitectura de Datos NO entra en el ciclo automático)
-        // ==========================================
-        let vistaActual = 0;
-        const vistas = document.querySelectorAll('.view-section');
-        const botones = [document.getElementById('btn-0'), document.getElementById('btn-1'), document.getElementById('btn-2')];
-        let carruselInterval;
-        let autoPlay = false;
+  doc.setFontSize(10);
+  const line = (label, value) => {
+    doc.setFont('helvetica','bold'); doc.setTextColor(...GRIS); doc.text(label+':', M, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.text(String(value), M+160, y);
+    y += 18;
+  };
 
-        // Solo se rota entre Timeline(1) y CDM > CDR(2)
-        const cicloCarrusel = [1, 2];
+  sectionTitle('Datos del empleado');
+  line('No. de empleado', val('num-empleado'));
+  line('Nombre', val('empleado'));
+  line('Área', val('area'));
+  line('Departamento', val('departamento'));
 
-        function cambiarVista(indice) {
-            vistas.forEach(v => v.classList.remove('active'));
-            botones.forEach(b => { if(b) b.classList.remove('active-btn'); });
-            vistas[indice].classList.add('active');
-            if (botones[indice]) botones[indice].classList.add('active-btn');
-            vistaActual = indice;
-        }
+  y += 4;
+  sectionTitle('Tipo de ausencia y motivo');
+  line('Tipo de ausencia', radioVal('tipo'));
 
-        function siguienteVista() {
-            let pos = cicloCarrusel.indexOf(vistaActual);
-            if (pos === -1) pos = 0; // si estamos fuera del ciclo (p.ej. Arquitectura), volvemos al inicio
-            const siguiente = cicloCarrusel[(pos + 1) % cicloCarrusel.length];
-            cambiarVista(siguiente);
-        }
+  const motivoActivo = document.querySelector('.motivo-panel.active').dataset.motivo;
+  if (motivoActivo === 'permisos') {
+    line('Permiso otorgado por', radioVal('permiso'));
+    if(document.getElementById('permiso-otro-detalle').value) line('  Detalle "Otro"', val('permiso-otro-detalle'));
+    line('Del / Al', `${val('permiso-del')}  a  ${val('permiso-al')}`);
+    line('Días otorgados / restantes', `${val('dias-otorgados')} / ${val('dias-restantes')}`);
+    line('Antigüedad / Periodo', val('antiguedad-periodo'));
+  } else if (motivoActivo === 'incapacidades') {
+    line('Incapacidad por', radioVal('incapacidad'));
+    line('Del / Al', `${val('incapacidad-del')}  a  ${val('incapacidad-al')}`);
+    line('No. de incapacidad', val('incapacidad-numero'));
+    line('No. de días de incapacidad', val('incapacidad-dias'));
+  } else {
+    line('Otro motivo', val('otros-detalle'));
+    line('Del / Al', `${val('otros-del')}  a  ${val('otros-al')}`);
+    line('No. de días', val('otros-dias'));
+  }
 
-        function iniciarCarrusel() { clearInterval(carruselInterval); carruselInterval = setInterval(siguienteVista, 6000); }
+  y += 4;
+  sectionTitle('Observaciones');
+  doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.setFontSize(10);
+  const obs = doc.splitTextToSize(val('observaciones'), PAGE_W - 2*M);
+  doc.text(obs, M, y); y += obs.length*14 + 20;
 
-        function toggleAutoPlay() {
-            const btnAuto = document.getElementById('btn-auto');
-            if (autoPlay) {
-                clearInterval(carruselInterval);
-                btnAuto.innerText = "▶ Reanudar Carrusel";
-                btnAuto.style.backgroundColor = "var(--alert-red)";
-                autoPlay = false;
-            } else {
-                iniciarCarrusel();
-                btnAuto.innerText = "⏸ Pausar Carrusel";
-                btnAuto.style.backgroundColor = "var(--success-green)";
-                autoPlay = true;
-            }
-        }
+  const firmaW = 170, firmaH = 65;
+  const firmaY = Math.max(y + 20, 620);
+  sectionTitleAt(firmaY - 26, 'Firmas');
+  const labels = ['Solicitó (Empleado)','Revisó (Jefe inmediato)'];
+  const nombreIds = ['nombre-solicito','nombre-reviso'];
+  const ids = ['firma-solicito','firma-reviso'];
+  ids.forEach((id,i)=>{
+    const x = M + i*220;
+    if(!pads[id].isEmpty()){
+      doc.addImage(pads[id].toDataURL('image/png'), 'PNG', x, firmaY, firmaW, firmaH);
+    }
+    doc.setDrawColor(...TEAL); doc.setLineWidth(0.75);
+    doc.line(x, firmaY+firmaH+4, x+firmaW, firmaY+firmaH+4);
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...TEAL);
+    doc.text(labels[i], x, firmaY+firmaH+16);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK);
+    doc.text(val(nombreIds[i]), x, firmaY+firmaH+29);
+  });
 
-        // Mostrar / ocultar los botones de Resumen y Arq. Data (ocultos por defecto)
-        let infoBtnsVisible = false;
-        function applyInfoButtons() {
-            const disp = infoBtnsVisible ? '' : 'none';
-            document.getElementById('loc-resumen').style.display = disp;
-            document.getElementById('loc-fuentes').style.display = disp;
-            const btn = document.getElementById('toggle-info-btn');
-            btn.classList.toggle('active', !infoBtnsVisible);
-            btn.innerHTML = infoBtnsVisible ? '&#9662;' : '&#9652;'; // ▾ mostrado / ▴ oculto
-        }
-        function toggleInfoButtons() {
-            infoBtnsVisible = !infoBtnsVisible;
-            applyInfoButtons();
-        }
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2,'0');
+  const mm = String(hoy.getMonth()+1).padStart(2,'0');
+  const yyyy = hoy.getFullYear();
+  const nombre = `FO-UB-181-${val('num-empleado')}-${dd}${mm}${yyyy}.pdf`;
+  doc.save(nombre);
 
-        function setUbicacion(zona) {
-            document.querySelectorAll('.btn-loc').forEach(btn => btn.classList.remove('active-loc'));
-            document.getElementById('loc-' + zona).classList.add('active-loc');
-            
-            const controlesCarrusel = document.getElementById('carousel-controls');
-            const textoUbicacion = document.getElementById('ubicacion-pantalla');
-            const textoModo = document.getElementById('modo-pantalla');
-
-            if (zona === 'embarques') {
-                textoUbicacion.innerText = "📍 Transportes";
-                textoModo.innerText = "Modo: Fijo (Monitoreo SAP EWM)";
-                textoModo.style.color = "var(--alert-red)";
-                if(autoPlay) toggleAutoPlay(); 
-                controlesCarrusel.style.display = 'none'; 
-                embPos = 0; embDir = 1; embPause = 20;
-                const contEmb = document.querySelector('#vista-embarques .table-embarques-scroll');
-                if (contEmb) contEmb.scrollTop = 0;
-                cambiarVista(0); 
-            } else if (zona === 'lideres') {
-                textoUbicacion.innerText = "📍 CDM > CDR";
-                textoModo.innerText = "Modo: Carrusel Automático (Timeline · CDM > CDR)";
-                textoModo.style.color = "#888";
-                controlesCarrusel.style.display = 'flex';
-                cambiarVista(2); 
-            } else if (zona === 'facilitadores') {
-                textoUbicacion.innerText = "📍 Timeline";
-                textoModo.innerText = "Modo: Carrusel Automático (Timeline · CDM > CDR)";
-                textoModo.style.color = "#888";
-                controlesCarrusel.style.display = 'flex';
-                cambiarVista(1); 
-            } else if (zona === 'resumen') {
-                textoUbicacion.innerText = "📍 Resumen";
-                textoModo.innerText = "Modo: Informativo (Fuera del carrusel)";
-                textoModo.style.color = "var(--ubictum-teal)";
-                if(autoPlay) toggleAutoPlay();
-                controlesCarrusel.style.display = 'none';
-                cambiarVista(3);
-            } else if (zona === 'puertas') {
-                textoUbicacion.innerText = "📍 Puertas";
-                textoModo.innerText = "Modo: Fijo por puerta (Monitoreo SAP EWM)";
-                textoModo.style.color = "var(--alert-red)";
-                if(autoPlay) toggleAutoPlay();
-                controlesCarrusel.style.display = 'none';
-                cambiarVista(5);
-                requestAnimationFrame(ajustarPuerta);
-            } else if (zona === 'fuentes') {
-                textoUbicacion.innerText = "📍 Arq. Data";
-                textoModo.innerText = "Modo: Informativo (Fuera del carrusel)";
-                textoModo.style.color = "var(--ubictum-teal)";
-                if(autoPlay) toggleAutoPlay();
-                controlesCarrusel.style.display = 'none';
-                cambiarVista(4);
-            }
-        }
-        
-        // ==========================================
-        // TRANSPORTES — Auto-scroll de la tabla
-        // ==========================================
-        let embPos = 0, embDir = 1, embPause = 0;
-        function autoScrollTransportes() {
-            const cont = document.querySelector('#vista-embarques .table-embarques-scroll');
-            const sec = document.getElementById('vista-embarques');
-            if (!cont || !sec || !sec.classList.contains('active')) return;
-            const max = cont.scrollHeight - cont.clientHeight;
-            if (max <= 2) return;
-            if (embPause > 0) { embPause--; return; }
-            embPos += embDir * 0.4;
-            if (embPos >= max) { embPos = max; embDir = -1; embPause = 55; }
-            else if (embPos <= 0) { embPos = 0; embDir = 1; embPause = 55; }
-            cont.scrollTop = embPos;
-        }
-
-        // ==========================================
-        // EMBARQUES / PUERTAS — Simulación dinámica (RFID)
-        // ==========================================
-        const PT_TOTAL = 2960;
-        const PT_OBJETIVO = "14:00";
-        let consDone = 498;   // HU's consolidadas (piezas que caen del sorter y arman tarima)
-        let embDone = 0;      // HU's embarcadas (piezas ya subidas a la unidad)
-        let fasePuerta = 'consolidando'; // 'consolidando' -> 'embarcando' -> reinicio
-        let holdReset = false;
-        const R = 54, CIRC = 2 * Math.PI * R, ARC = 0.75 * CIRC; // gauge 270°
-
-        function fmt(n) { return n.toLocaleString('en-US'); }
-        function pasoRFID() { return Math.floor(220 + Math.random() * 190); }
-
-        function setGauge(arcId, pctId, avanceId, pendId, totId, done) {
-            const frac = done / PT_TOTAL;
-            const pct = Math.round(frac * 100);
-            const arc = document.getElementById(arcId);
-            if (arc) {
-                arc.setAttribute('stroke-dasharray', CIRC.toFixed(1));
-                arc.setAttribute('stroke-dashoffset', (CIRC * (1 - frac)).toFixed(1));
-            }
-            document.getElementById(pctId).innerText = pct + '%';
-            document.getElementById(avanceId).innerText = fmt(done);
-            document.getElementById(pendId).innerText = fmt(PT_TOTAL - done);
-            document.getElementById(totId).innerText = fmt(PT_TOTAL);
-        }
-
-        function pintarPuertas() {
-            setGauge('cons-arc', 'cons-pct', 'cons-avance', 'cons-pend', 'cons-total', consDone);
-            setGauge('emb-arc', 'emb-pct', 'emb-avance', 'emb-pend', 'emb-total', embDone);
-        }
-
-        // Escala la tarjeta vertical para que quepa en la ventana (sin scroll)
-        function ajustarPuerta() {
-            const wrap = document.querySelector('.puerta-wrap');
-            const screen = document.querySelector('.puerta-screen');
-            if (!wrap || !screen) return;
-            screen.style.transform = 'scale(1)';
-            const avail = wrap.clientHeight;
-            const natural = screen.offsetHeight;
-            if (!avail || !natural) return;
-            let escala = avail / natural;
-            if (escala > 1) escala = 1;
-            screen.style.transform = 'scale(' + escala.toFixed(3) + ')';
-        }
-        window.addEventListener('resize', ajustarPuerta);
-
-        function avanzarRFID() {
-            // Al terminar embarque, se mantuvo el 100% un ciclo; ahora reinicia todo en 0
-            if (holdReset) {
-                consDone = 0; embDone = 0; fasePuerta = 'consolidando'; holdReset = false;
-                pintarPuertas();
-                return;
-            }
-            if (fasePuerta === 'consolidando') {
-                // Primero se consolida (embarque permanece en 0)
-                consDone = Math.min(PT_TOTAL, consDone + pasoRFID());
-                if (consDone >= PT_TOTAL) { consDone = PT_TOTAL; fasePuerta = 'embarcando'; }
-            } else {
-                // Consolidado ya está al 100% (fijo); ahora avanza el embarque
-                embDone = Math.min(PT_TOTAL, embDone + pasoRFID());
-                if (embDone >= PT_TOTAL) { embDone = PT_TOTAL; holdReset = true; }
-            }
-            pintarPuertas();
-        }
-
-        function actualizarReloj() {
-            const ahora = new Date();
-            const hh = String(ahora.getHours()).padStart(2, '0');
-            const mm = String(ahora.getMinutes()).padStart(2, '0');
-            const reloj = document.getElementById('pt-clock');
-            if (reloj) reloj.innerText = hh + ':' + mm;
-            // Tiempo restante al objetivo de embarque
-            const [oh, om] = PT_OBJETIVO.split(':').map(Number);
-            const obj = new Date(ahora); obj.setHours(oh, om, 0, 0);
-            let diff = Math.round((obj - ahora) / 60000); // minutos
-            const restan = document.getElementById('pt-restan');
-            if (restan) {
-                if (diff > 0) {
-                    const h = Math.floor(diff / 60), m = diff % 60;
-                    restan.innerText = 'Restan ' + (h > 0 ? h + ' h ' : '') + m + ' min';
-                    restan.style.background = '';
-                } else {
-                    restan.innerText = 'Objetivo de embarque vencido';
-                }
-            }
-        }
-
-        // Iniciar todo
-        window.onload = function() {
-            iniciarLlenado();          // Timeline: llenado dinámico + páginas
-            pintarCDM();
-            pintarTU();
-            pintarPuertas();
-            actualizarReloj();
-            avanzarCDM();
-            programarTimeline();                    // Timeline cambia de página cada 10 s
-            setInterval(rotarTU, 8000);             // TU rota en CDM > CDR cada 8 s
-            setInterval(avanzarRFID, 5000);         // Puertas (RFID) cada 5 s
-            setInterval(avanzarCDM, 5000);          // CDM > CDR dinámico cada 5 s
-            setInterval(actualizarReloj, 30000);
-            setInterval(autoScrollTransportes, 50); // scroll automático de Transportes
-            setUbicacion('embarques');
-        };
-    </script>
+  status.textContent = 'PDF generado: ' + nombre + '  (en producción: subir a SharePoint vía Graph API en lugar de descargar)';
+  status.className = 'status ok';
+});
+</script>
 </body>
 </html>
