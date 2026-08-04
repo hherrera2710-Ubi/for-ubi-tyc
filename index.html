@@ -6,6 +6,7 @@
 <title>Ubictum · Digitalización de Incidencias</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <style>
   :root{
     --ink:#000000;
@@ -117,7 +118,10 @@
         <div class="brand-slogan">La puerta de entrada al mercado</div>
       </div>
     </div>
-    <div class="stepper" id="fecha-actual"></div>
+    <div style="text-align:right;">
+      <div class="stepper" id="fecha-actual"></div>
+      <button type="button" id="btn-login" style="margin-top:4px;font-size:11px;padding:5px 10px;border:1px solid var(--ink);background:#fff;border-radius:2px;cursor:pointer;">Iniciar sesión</button>
+    </div>
   </div>
 
   <select class="formato" id="formato-select">
@@ -240,6 +244,24 @@
       </div>
     </div>
 
+    <div class="card">
+      <h2>Guardar en</h2>
+      <div class="grid">
+        <div class="field">
+          <label>Año</label>
+          <select id="select-anio" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px; font-size:14px;">
+            <option value="">Inicia sesión para ver los años disponibles</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Semana (Incidencias/{año}/…)</label>
+          <select id="select-semana" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px; font-size:14px;">
+            <option value="">Elige primero el año</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <div class="actions">
       <button type="button" class="btn btn-secondary" id="btn-limpiar">Limpiar formulario</button>
       <button type="submit" class="btn btn-primary" id="btn-generar">Generar PDF</button>
@@ -250,6 +272,168 @@
 
 <script>
 document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+// ===================== CONFIGURACIÓN — rellenar una sola vez =====================
+const CONFIG = {
+  clientId:     "2d40d69e-d8a5-4305-a6c2-3142aaac9f26", // Application (client) ID del registro en Entra ID
+  tenantId:     "5b149376-e794-49a0-a90d-7e8dab892910", // Directory (tenant) ID
+  siteHostname: "ubictum.sharepoint.com", // dominio de SharePoint
+  sitePath:     "/sites/BTTyC",           // sitio
+  folderPath:   "Incidencias" // carpeta base; dentro viven 2026/2027... y dentro Sem01...Sem52
+};
+const CONFIGURADO = CONFIG.clientId !== "TU_CLIENT_ID_AQUI";
+// ===================================================================================
+
+let msalInstance = null;
+let cachedSiteId = null;
+
+if (CONFIGURADO) {
+  msalInstance = new msal.PublicClientApplication({
+    auth: {
+      clientId: CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
+      redirectUri: window.location.href
+    },
+    cache: { cacheLocation: 'localStorage' } // conserva la sesión entre usos en la tableta
+  });
+  msalInstance.handleRedirectPromise().then(actualizarBotonLogin);
+} else {
+  document.getElementById('btn-login').style.display = 'none';
+}
+
+function cuentaActiva(){
+  if (!msalInstance) return null;
+  const cuentas = msalInstance.getAllAccounts();
+  return cuentas.length ? cuentas[0] : null;
+}
+
+function actualizarBotonLogin(){
+  const btn = document.getElementById('btn-login');
+  const cuenta = cuentaActiva();
+  if (cuenta) {
+    btn.textContent = `✓ Sesión: ${cuenta.username}`;
+    btn.disabled = true;
+    btn.style.opacity = '0.65';
+    btn.style.cursor = 'default';
+  } else {
+    btn.textContent = 'Iniciar sesión';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  }
+}
+
+document.getElementById('btn-login').addEventListener('click', async ()=>{
+  if (cuentaActiva()) return; // ya hay sesión
+  try {
+    await msalInstance.loginPopup({ scopes: ['Sites.ReadWrite.All'] });
+    actualizarBotonLogin();
+    cargarCarpetasAnio();
+  } catch(err){
+    alert('No se pudo iniciar sesión: ' + err.message);
+  }
+});
+if (CONFIGURADO && cuentaActiva()) cargarCarpetasAnio();
+if (CONFIGURADO) actualizarBotonLogin();
+
+document.getElementById('select-anio').addEventListener('change', (e)=>{
+  if (e.target.value) cargarCarpetasSemana(e.target.value);
+});
+
+function semanaActualISO(){
+  const d = new Date();
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const diff = target - firstThursday;
+  const week = 1 + Math.round(diff / (7*24*60*60*1000));
+  return 'Sem' + String(week).padStart(2,'0');
+}
+
+async function listarSubcarpetas(rutaRelativa){
+  const token = await obtenerToken();
+  const siteId = await obtenerSiteId(token);
+  const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/${rutaRelativa}:/children?$select=name,folder`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('No se pudo leer ' + rutaRelativa);
+  const data = await res.json();
+  return (data.value || []).filter(item => item.folder).map(item => item.name).sort();
+}
+
+async function cargarCarpetasAnio(){
+  const selectAnio = document.getElementById('select-anio');
+  const selectSemana = document.getElementById('select-semana');
+  selectAnio.innerHTML = '<option value="">Cargando años…</option>';
+  selectSemana.innerHTML = '<option value="">Elige primero el año</option>';
+  try {
+    const anios = await listarSubcarpetas(CONFIG.folderPath);
+    if (!anios.length) throw new Error('No se encontraron carpetas de año en ' + CONFIG.folderPath);
+    selectAnio.innerHTML = anios.map(a => `<option value="${a}">${a}</option>`).join('');
+    const anioActual = String(new Date().getFullYear());
+    if (anios.includes(anioActual)) selectAnio.value = anioActual;
+    cargarCarpetasSemana(selectAnio.value);
+  } catch (err) {
+    selectAnio.innerHTML = `<option value="">Error: ${err.message}</option>`;
+  }
+}
+
+async function cargarCarpetasSemana(anio){
+  const selectSemana = document.getElementById('select-semana');
+  if (!anio) { selectSemana.innerHTML = '<option value="">Elige primero el año</option>'; return; }
+  selectSemana.innerHTML = '<option value="">Cargando semanas…</option>';
+  try {
+    const semanas = await listarSubcarpetas(`${CONFIG.folderPath}/${anio}`);
+    if (!semanas.length) throw new Error('No se encontraron carpetas de semana en ' + anio);
+    selectSemana.innerHTML = semanas.map(s => `<option value="${s}">${s}</option>`).join('');
+    const semanaHoy = semanaActualISO();
+    if (semanas.includes(semanaHoy)) selectSemana.value = semanaHoy;
+  } catch (err) {
+    selectSemana.innerHTML = `<option value="">Error: ${err.message}</option>`;
+  }
+}
+
+async function obtenerToken(){
+  const cuenta = cuentaActiva();
+  if (!cuenta) throw new Error('sin-sesion');
+  try {
+    const r = await msalInstance.acquireTokenSilent({ scopes:['Sites.ReadWrite.All'], account: cuenta });
+    return r.accessToken;
+  } catch {
+    const r = await msalInstance.acquireTokenPopup({ scopes:['Sites.ReadWrite.All'] });
+    return r.accessToken;
+  }
+}
+
+async function obtenerSiteId(token){
+  if (cachedSiteId) return cachedSiteId;
+  const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${CONFIG.siteHostname}:${CONFIG.sitePath}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('No se encontró el sitio de SharePoint (revisa siteHostname/sitePath)');
+  const data = await res.json();
+  cachedSiteId = data.id;
+  return cachedSiteId;
+}
+
+async function subirPdfASharePoint(blob, nombreArchivo){
+  const anio = document.getElementById('select-anio').value;
+  const semana = document.getElementById('select-semana').value;
+  if (!anio) throw new Error('elige un año');
+  if (!semana) throw new Error('elige una semana');
+  const token = await obtenerToken();
+  const siteId = await obtenerSiteId(token);
+  const rutaCompleta = `${CONFIG.folderPath}/${anio}/${semana}`;
+  const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/${rutaCompleta}/${encodeURIComponent(nombreArchivo)}:/content`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/pdf' },
+    body: blob
+  });
+  if (!res.ok) throw new Error('Graph respondió ' + res.status + ' — revisa que la carpeta exista en SharePoint');
+  return res.json();
+}
 
 // Tabs de motivo: Permisos / Incapacidades / Otros (mutuamente excluyentes)
 document.querySelectorAll('.motivo-tab').forEach(tab=>{
@@ -424,10 +608,27 @@ document.getElementById('form-ausencia').addEventListener('submit', async (e)=>{
   const mm = String(hoy.getMonth()+1).padStart(2,'0');
   const yyyy = hoy.getFullYear();
   const nombre = `FO-UB-181-${val('num-empleado')}-${dd}${mm}${yyyy}.pdf`;
-  doc.save(nombre);
 
-  status.textContent = 'PDF generado: ' + nombre + '  (en producción: subir a SharePoint vía Graph API en lugar de descargar)';
-  status.className = 'status ok';
+  if (CONFIGURADO && cuentaActiva()) {
+    try {
+      status.textContent = 'Subiendo a SharePoint…';
+      const blob = doc.output('blob');
+      await subirPdfASharePoint(blob, nombre);
+      status.textContent = 'Guardado en SharePoint: ' + nombre;
+      status.className = 'status ok';
+    } catch (err) {
+      console.error(err);
+      doc.save(nombre);
+      status.textContent = 'No se pudo subir a SharePoint (' + err.message + '). Se descargó localmente: ' + nombre;
+    }
+  } else if (CONFIGURADO && !cuentaActiva()) {
+    status.textContent = 'Inicia sesión (botón superior derecho) para guardar directo en SharePoint. Por ahora se descargó localmente.';
+    doc.save(nombre);
+  } else {
+    doc.save(nombre);
+    status.textContent = 'PDF generado: ' + nombre + ' (configura CONFIG en el código para subir automáticamente a SharePoint)';
+    status.className = 'status ok';
+  }
 });
 </script>
 </body>
