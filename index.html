@@ -271,6 +271,12 @@
 </div>
 
 <script>
+window.addEventListener('error', (e)=>{
+  const s = document.getElementById('status');
+  if (s) { s.textContent = '⚠ Error de script: ' + e.message; s.className = 'status'; }
+  console.error('Error capturado:', e.error || e.message);
+});
+
 document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
 
 // ===================== CONFIGURACIÓN — rellenar una sola vez =====================
@@ -286,23 +292,38 @@ const CONFIGURADO = CONFIG.clientId !== "TU_CLIENT_ID_AQUI";
 
 let msalInstance = null;
 let cachedSiteId = null;
+let msalDisponible = false;
 
-if (CONFIGURADO) {
-  msalInstance = new msal.PublicClientApplication({
-    auth: {
-      clientId: CONFIG.clientId,
-      authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
-      redirectUri: window.location.href
-    },
-    cache: { cacheLocation: 'localStorage' } // conserva la sesión entre usos en la tableta
-  });
-  msalInstance.handleRedirectPromise().then(actualizarBotonLogin);
-} else {
-  document.getElementById('btn-login').style.display = 'none';
+try {
+  if (CONFIGURADO) {
+    if (typeof msal === 'undefined') {
+      throw new Error('La librería MSAL no cargó (revisa conexión a alcdn.msauth.net desde la tableta)');
+    }
+    msalInstance = new msal.PublicClientApplication({
+      auth: {
+        clientId: CONFIG.clientId,
+        authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
+        redirectUri: window.location.href
+      },
+      cache: { cacheLocation: 'localStorage' } // conserva la sesión entre usos en la tableta
+    });
+    msalDisponible = true;
+    msalInstance.handleRedirectPromise().then(()=>actualizarBotonLogin());
+  } else {
+    document.getElementById('btn-login').style.display = 'none';
+  }
+} catch (err) {
+  console.error('No se pudo inicializar MSAL:', err);
+  const btn = document.getElementById('btn-login');
+  btn.textContent = 'SharePoint no disponible';
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  const status = document.getElementById('status');
+  if (status) status.textContent = '⚠ No se pudo inicializar el login de SharePoint: ' + err.message + ' — el formulario sigue funcionando, generará el PDF localmente.';
 }
 
 function cuentaActiva(){
-  if (!msalInstance) return null;
+  if (!msalDisponible || !msalInstance) return null;
   const cuentas = msalInstance.getAllAccounts();
   return cuentas.length ? cuentas[0] : null;
 }
@@ -324,6 +345,7 @@ function actualizarBotonLogin(){
 }
 
 document.getElementById('btn-login').addEventListener('click', async ()=>{
+  if (!msalDisponible) return;
   if (cuentaActiva()) return; // ya hay sesión
   try {
     await msalInstance.loginPopup({ scopes: ['Sites.ReadWrite.All'] });
@@ -333,8 +355,8 @@ document.getElementById('btn-login').addEventListener('click', async ()=>{
     alert('No se pudo iniciar sesión: ' + err.message);
   }
 });
-if (CONFIGURADO && cuentaActiva()) cargarCarpetasAnio();
-if (CONFIGURADO) actualizarBotonLogin();
+if (msalDisponible && cuentaActiva()) cargarCarpetasAnio();
+if (msalDisponible) actualizarBotonLogin();
 
 document.getElementById('select-anio').addEventListener('change', (e)=>{
   if (e.target.value) cargarCarpetasSemana(e.target.value);
