@@ -308,7 +308,10 @@ try {
       cache: { cacheLocation: 'localStorage' } // conserva la sesión entre usos en la tableta
     });
     msalDisponible = true;
-    msalInstance.handleRedirectPromise().then(()=>actualizarBotonLogin());
+    msalInstance.handleRedirectPromise().then(()=>{
+      actualizarBotonLogin();
+      if (cuentaActiva()) cargarCarpetasAnio();
+    });
   } else {
     document.getElementById('btn-login').style.display = 'none';
   }
@@ -348,9 +351,9 @@ document.getElementById('btn-login').addEventListener('click', async ()=>{
   if (!msalDisponible) return;
   if (cuentaActiva()) return; // ya hay sesión
   try {
-    await msalInstance.loginPopup({ scopes: ['Sites.ReadWrite.All'] });
-    actualizarBotonLogin();
-    cargarCarpetasAnio();
+    await msalInstance.loginRedirect({ scopes: ['Sites.ReadWrite.All'] });
+    // la página navega a Microsoft y regresa sola; handleRedirectPromise() se
+    // encarga de actualizar el botón y cargar Año/Semana al volver.
   } catch(err){
     alert('No se pudo iniciar sesión: ' + err.message);
   }
@@ -419,13 +422,12 @@ async function cargarCarpetasSemana(anio){
 async function obtenerToken(){
   const cuenta = cuentaActiva();
   if (!cuenta) throw new Error('sin-sesion');
-  try {
-    const r = await msalInstance.acquireTokenSilent({ scopes:['Sites.ReadWrite.All'], account: cuenta });
-    return r.accessToken;
-  } catch {
-    const r = await msalInstance.acquireTokenPopup({ scopes:['Sites.ReadWrite.All'] });
-    return r.accessToken;
-  }
+  const r = await msalInstance.acquireTokenSilent({ scopes:['Sites.ReadWrite.All'], account: cuenta });
+  return r.accessToken;
+  // Nota: si acquireTokenSilent falla (sesión realmente vencida), lanza el error
+  // y se cae al respaldo de descarga local — no usamos popup/redirect aquí para
+  // no perder los datos del formulario a medio llenar. En ese caso, pedir al
+  // usuario que vuelva a tocar "Iniciar sesión" antes de seguir llenando.
 }
 
 async function obtenerSiteId(token){
