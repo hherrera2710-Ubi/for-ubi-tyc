@@ -32,12 +32,12 @@
   .brand-lockup{display:flex; align-items:center; gap:10px;}
   .brand-lockup svg{display:block;}
   .brand-text{display:flex; flex-direction:column; gap:2px;}
-  .brand-word{font-weight:800; letter-spacing:.06em; font-size:19px; color:#000000;}
+  .brand-word{font-weight:800; letter-spacing:.06em; font-size:23px; color:#000000;}
   .brand-word b{color:var(--accent);}
-  .brand-slogan{font-size:9px; letter-spacing:.16em; color:var(--gris); text-transform:uppercase;}
-  .stepper{font-family:var(--mono); font-size:11px; color:#000000;}
+  .brand-slogan{font-size:11px; letter-spacing:.14em; color:var(--gris); text-transform:uppercase;}
+  .stepper{font-family:var(--mono); font-size:13px; color:#000000;}
   select.formato{
-    width:100%; padding:12px 14px; font-size:15px; border:1.5px solid var(--ink);
+    width:100%; padding:14px 16px; font-size:18px; border:1.5px solid var(--ink);
     background:#fff; margin-bottom:20px; border-radius:2px;
   }
   .card{
@@ -45,32 +45,32 @@
     padding:22px 20px; margin-bottom:16px;
   }
   .card h2{
-    font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+    font-size:13px; text-transform:uppercase; letter-spacing:.12em;
     color:var(--accent); margin:0 0 16px; border-bottom:1px solid var(--accent-soft); padding-bottom:8px;
     display:flex; align-items:center; justify-content:space-between; gap:16px;
   }
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
   .grid.g3{grid-template-columns:1fr 1fr 1fr;}
-  label{display:block; font-size:11px; color:var(--gris); margin-bottom:4px;}
+  label{display:block; font-size:14px; color:var(--gris); margin-bottom:5px;}
   .motivo-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
   .motivo-tab{
-    flex:1; min-width:150px; padding:11px 12px; text-align:center; font-size:12px;
+    flex:1; min-width:150px; padding:13px 14px; text-align:center; font-size:15px;
     font-weight:700; letter-spacing:.03em; border:1.5px solid var(--line); border-radius:2px;
     background:#fdfdfc; color:var(--gris); cursor:pointer;
   }
   .motivo-tab.active{background:var(--accent); border-color:var(--accent); color:#fff;}
   .motivo-panel{display:none;}
   .motivo-panel.active{display:block;}
-  .subtitulo{font-size:11px;font-weight:700;color:var(--ink);margin-bottom:8px;display:block;}
+  .subtitulo{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;display:block;}
   input[type=text], input[type=date], input[type=number], textarea{
     width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px;
-    font-size:14px; font-family:inherit; background:#fdfdfc;
+    font-size:18px; font-family:inherit; background:#fdfdfc;
   }
   textarea{resize:vertical; min-height:50px;}
   .field{margin-bottom:0;}
   .opciones{display:flex; flex-wrap:wrap; gap:10px 22px;}
   .opt{
-    display:flex; align-items:center; gap:8px; font-size:14px;
+    display:flex; align-items:center; gap:8px; font-size:16px;
     border:1px solid var(--line); padding:9px 12px; border-radius:2px; cursor:pointer;
     background:#fdfdfc;
   }
@@ -84,9 +84,9 @@
     width:100%; height:110px; border:1px solid var(--ink); border-radius:2px;
     background:#fff; touch-action:none;
   }
-  .firma-box p{font-size:11px; margin:6px 0 4px; color:#71706b;}
+  .firma-box p{font-size:14px; margin:6px 0 4px; color:#71706b;}
   .firma-box button{
-    font-size:10px; background:none; border:none; color:var(--danger);
+    font-size:13px; background:none; border:none; color:var(--danger);
     text-decoration:underline; cursor:pointer; padding:0;
   }
   .actions{
@@ -94,7 +94,7 @@
     display:flex; gap:12px; margin-top:8px;
   }
   .btn{
-    flex:1; padding:14px; font-size:14px; font-weight:700; border-radius:2px;
+    flex:1; padding:16px; font-size:17px; font-weight:700; border-radius:2px;
     border:none; cursor:pointer;
   }
   .btn-primary{background:var(--accent); color:#fff;}
@@ -104,7 +104,7 @@
     font-size:11px; color:#71706b; background:var(--accent-soft); border-radius:2px;
     padding:10px 12px; margin-top:12px; line-height:1.5;
   }
-  .status{font-size:12px; margin-top:10px; min-height:16px;}
+  .status{font-size:15px; margin-top:10px; min-height:16px;}
   .status.ok{color:var(--accent);}
 </style>
 </head>
@@ -120,7 +120,7 @@
     </div>
     <div style="text-align:right;">
       <div class="stepper" id="fecha-actual"></div>
-      <button type="button" id="btn-login" style="margin-top:4px;font-size:11px;padding:5px 10px;border:1px solid var(--ink);background:#fff;border-radius:2px;cursor:pointer;">Iniciar sesión</button>
+      <button type="button" id="btn-login" style="margin-top:4px;font-size:13px;padding:7px 12px;border:1px solid var(--ink);background:#fff;border-radius:2px;cursor:pointer;">Iniciar sesión</button>
     </div>
   </div>
 
@@ -249,13 +249,13 @@
       <div class="grid">
         <div class="field">
           <label>Año</label>
-          <select id="select-anio" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px; font-size:14px;">
+          <select id="select-anio" style="width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:2px; font-size:17px;">
             <option value="">Inicia sesión para ver los años disponibles</option>
           </select>
         </div>
         <div class="field">
           <label>Semana (Incidencias/{año}/…)</label>
-          <select id="select-semana" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px; font-size:14px;">
+          <select id="select-semana" style="width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:2px; font-size:17px;">
             <option value="">Elige primero el año</option>
           </select>
         </div>
@@ -481,15 +481,20 @@ document.querySelectorAll('.opt input[type=radio]').forEach(inp=>{
 // Signature pads
 function initPad(canvasId){
   const canvas = document.getElementById(canvasId);
-  function resize(){
+  function sizeCanvas(){
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     canvas.width = canvas.offsetWidth * ratio;
     canvas.height = canvas.offsetHeight * ratio;
     canvas.getContext('2d').scale(ratio, ratio);
   }
-  resize();
-  window.addEventListener('resize', resize);
-  return new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)', penColor:'#161514' });
+  sizeCanvas();
+  const pad = new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)', penColor:'#161514' });
+  window.addEventListener('resize', ()=>{
+    const datosPrevios = pad.toData(); // guarda los trazos antes de redimensionar
+    sizeCanvas();                      // esto borra los píxeles del canvas
+    pad.fromData(datosPrevios);        // los vuelve a dibujar
+  });
+  return pad;
 }
 const pads = {
   'firma-solicito': initPad('firma-solicito'),
@@ -535,43 +540,43 @@ document.getElementById('form-ausencia').addEventListener('submit', async (e)=>{
   doc.setFillColor(...TEAL);
   doc.rect(0, 0, PAGE_W, 76, 'F');
   doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold'); doc.setFontSize(22);
-  doc.text('UBICTUM', M, 36);
-  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.setFont('helvetica','bold'); doc.setFontSize(25);
+  doc.text('UBICTUM', M, 38);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
   doc.setCharSpace(1.1);
-  doc.text('LA PUERTA DE ENTRADA AL MERCADO', M, 50);
+  doc.text('LA PUERTA DE ENTRADA AL MERCADO', M, 53);
   doc.setCharSpace(0);
 
   doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  doc.text('REPORTE DE AUSENCIA', PAGE_W-M, 36, {align:'right'});
-  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-  doc.text(`FO-UB-181  ·  ${document.getElementById('fecha-actual').textContent}`, PAGE_W-M, 50, {align:'right'});
+  doc.setFont('helvetica','bold'); doc.setFontSize(12.5);
+  doc.text('REPORTE DE AUSENCIA', PAGE_W-M, 38, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+  doc.text(`FO-UB-181  ·  ${document.getElementById('fecha-actual').textContent}`, PAGE_W-M, 53, {align:'right'});
 
   y = 108;
 
   const sectionTitle = (t)=>{
-    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(11.5);
     doc.setCharSpace(0.6);
     doc.text(t.toUpperCase(), M, y); doc.setCharSpace(0);
-    y += 6;
+    y += 7;
     doc.setDrawColor(...TEAL); doc.setLineWidth(1);
     doc.line(M, y, PAGE_W-M, y);
-    y += 18;
+    y += 21;
   };
   const sectionTitleAt = (yPos, t)=>{
-    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.setTextColor(...TEAL); doc.setFont('helvetica','bold'); doc.setFontSize(11.5);
     doc.setCharSpace(0.6);
     doc.text(t.toUpperCase(), M, yPos); doc.setCharSpace(0);
     doc.setDrawColor(...TEAL); doc.setLineWidth(1);
-    doc.line(M, yPos+6, PAGE_W-M, yPos+6);
+    doc.line(M, yPos+7, PAGE_W-M, yPos+7);
   };
 
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   const line = (label, value) => {
     doc.setFont('helvetica','bold'); doc.setTextColor(...GRIS); doc.text(label+':', M, y);
-    doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.text(String(value), M+160, y);
-    y += 18;
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.text(String(value), M+165, y);
+    y += 21;
   };
 
   sectionTitle('Datos del empleado');
@@ -604,7 +609,7 @@ document.getElementById('form-ausencia').addEventListener('submit', async (e)=>{
 
   y += 4;
   sectionTitle('Observaciones');
-  doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.setFontSize(10);
+  doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.setFontSize(12);
   const obs = doc.splitTextToSize(val('observaciones'), PAGE_W - 2*M);
   doc.text(obs, M, y); y += obs.length*14 + 20;
 
@@ -621,10 +626,10 @@ document.getElementById('form-ausencia').addEventListener('submit', async (e)=>{
     }
     doc.setDrawColor(...TEAL); doc.setLineWidth(0.75);
     doc.line(x, firmaY+firmaH+4, x+firmaW, firmaY+firmaH+4);
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...TEAL);
-    doc.text(labels[i], x, firmaY+firmaH+16);
-    doc.setFont('helvetica','normal'); doc.setTextColor(...INK);
-    doc.text(val(nombreIds[i]), x, firmaY+firmaH+29);
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...TEAL);
+    doc.text(labels[i], x, firmaY+firmaH+18);
+    doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(...INK);
+    doc.text(val(nombreIds[i]), x, firmaY+firmaH+33);
   });
 
   const hoy = new Date();
