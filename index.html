@@ -6,7 +6,7 @@
 <title>Ubictum · Digitalización de Incidencias</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <style>
   :root{
     --ink:#000000;
@@ -297,7 +297,7 @@ let msalDisponible = false;
 try {
   if (CONFIGURADO) {
     if (typeof msal === 'undefined') {
-      throw new Error('La librería MSAL no cargó (revisa conexión a alcdn.msauth.net desde la tableta)');
+      throw new Error('La librería MSAL no cargó (revisa conexión a cdn.jsdelivr.net desde la tableta)');
     }
     msalInstance = new msal.PublicClientApplication({
       auth: {
